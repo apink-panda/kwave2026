@@ -181,7 +181,8 @@ const pandaEntryTimeOptions = [
 const pandaJoinReasonOptions = [
   "歌曲好聽",
   "某位成員入坑",
-  "長太好看",
+  "被美貌所吸引",
+  "綜藝感十足",
   { label: "自己填寫入坑原因", value: CUSTOM_CHOICE_VALUE, custom: true },
 ];
 
@@ -802,7 +803,7 @@ function renderRaffleEnergy() {
   return `
     <div class="raffle-screen-copy">
       <p>Mission ${getMissionNumber()}</p>
-      <h3>今天的應援能量有多高？</h3>
+      <h3>應援能量有多高？</h3>
     </div>
     <div class="raffle-energy">
       <strong id="energyValue">${raffleState.supportEnergy}</strong>
