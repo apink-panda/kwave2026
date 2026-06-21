@@ -1567,23 +1567,33 @@ h1 span {
 }
 
 .support-pool-card strong {
+  display: -webkit-box;
+  overflow: hidden;
   color: var(--ink);
   font-size: clamp(1.45rem, 4vw, 2rem);
   font-weight: 900;
   line-height: 1.05;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .support-pool-card p {
+  display: -webkit-box;
+  overflow: hidden;
   margin: 0;
   color: rgb(53 27 76 / 68%);
   font-size: 0.9rem;
   font-weight: 800;
   line-height: 1.55;
   overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
 }
 
 .support-pool-card__message {
   font-size: 0.96rem;
+  -webkit-line-clamp: 4;
 }
 
 .support-pool__status {

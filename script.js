@@ -144,6 +144,14 @@ const raffleState = {
 
 const CUSTOM_CHOICE_VALUE = "__custom__";
 const GUEST_SUPPORT_GROUP_FALLBACK = "未詢問";
+const TEXT_LIMITS = {
+  contact: 120,
+  favoriteSongCustom: 80,
+  entryTimeCustom: 80,
+  supportMomentCustom: 120,
+  message: 180,
+  website: 80,
+};
 
 const apinkTitleTrackOptions = [
   "I Don't Know（Seven Springs of Apink）",
@@ -341,8 +349,9 @@ const raffleSteps = [
     label: "PINK MESSAGE",
     render: renderRaffleMessage,
     validate() {
-      if (!raffleState.message.trim()) return "請寫下一句想說的話";
-      if (raffleState.message.trim().length > 180) return "訊息請控制在 180 字以內";
+      const message = sanitizeUserText(raffleState.message, 1000);
+      if (!message) return "請寫下一句想說的話";
+      if (message.length > getTextLimit("message")) return "訊息請控制在 180 字以內";
       return "";
     },
   },
@@ -563,9 +572,9 @@ function addCurrentAnswerToSupportPool() {
 }
 
 function normalizeSupportPoolEntry(entry) {
-  const song = String(entry && entry.song || "").replace(/\s+/g, " ").trim().slice(0, 80);
-  const reason = String(entry && entry.reason || "").replace(/\s+/g, " ").trim().slice(0, 120);
-  const message = String(entry && entry.message || "").replace(/\s+/g, " ").trim().slice(0, 180);
+  const song = sanitizeUserText(entry && entry.song, 80);
+  const reason = sanitizeUserText(entry && entry.reason, 120);
+  const message = sanitizeUserText(entry && entry.message, getTextLimit("message"));
 
   if (!song || !reason || !message) return null;
   return { song, reason, message };
@@ -615,7 +624,7 @@ function renderRaffleProfile() {
         <input id="consent" type="checkbox" ${raffleState.consent ? "checked" : ""} />
         <span>我了解此為粉絲自製趣味調查，與主辦官方無任何關聯，以上資料僅用於抽獎、聯繫與中獎名單核對，不會儲存任何敏感資料，留言或調查結果會公開在展示頁面，但不會顯示帳號，但介意者請勿參加。</span>
       </label>
-      <input id="website" class="raffle-honeypot" type="text" value="${escapeHtml(raffleState.website)}" tabindex="-1" autocomplete="off" />
+      <input id="website" class="raffle-honeypot" type="text" maxlength="${getTextLimit("website")}" value="${escapeHtml(sanitizeUserText(raffleState.website, getTextLimit("website"), { trim: false }))}" tabindex="-1" autocomplete="off" />
     </div>
     ${raffleErrorMarkup()}
     ${raffleNavMarkup({ nextLabel: "下一題" })}
@@ -632,11 +641,12 @@ function renderRaffleChoice({
   compact = false,
 }) {
   const normalizedOptions = options.map(normalizeChoiceOption);
+  const customMaxLength = getTextLimit(customField);
   const customInput = customField && raffleState[field] === CUSTOM_CHOICE_VALUE
     ? `
       <label class="raffle-field raffle-field--custom" for="${customField}">
         <span>${escapeHtml(customLabel || "自己填寫")}</span>
-        <input id="${customField}" type="text" value="${escapeHtml(raffleState[customField])}" placeholder="${escapeHtml(customPlaceholder)}" autocomplete="off" />
+        <input id="${customField}" type="text" maxlength="${customMaxLength}" value="${escapeHtml(sanitizeUserText(raffleState[customField], customMaxLength, { trim: false }))}" placeholder="${escapeHtml(customPlaceholder)}" autocomplete="off" />
       </label>
     `
     : "";
@@ -764,6 +774,8 @@ function renderRaffleGuestFollowup() {
 }
 
 function renderRaffleMessage() {
+  const message = sanitizeUserText(raffleState.message, getTextLimit("message"), { trim: false });
+
   return `
     <div class="raffle-screen-copy">
       <p>Mission ${getMissionNumber()}</p>
@@ -778,9 +790,9 @@ function renderRaffleMessage() {
     </div>
     <label class="raffle-textarea">
       <span>自己填寫應援訊息</span>
-      <textarea id="message" maxlength="180" rows="5" placeholder="一起把粉紅波浪推到最亮。">${escapeHtml(raffleState.message)}</textarea>
+      <textarea id="message" maxlength="${getTextLimit("message")}" rows="5" placeholder="一起把粉紅波浪推到最亮。">${escapeHtml(message)}</textarea>
     </label>
-    <p class="raffle-count"><span id="messageCount">${raffleState.message.length}</span>/180</p>
+    <p class="raffle-count"><span id="messageCount">${message.length}</span>/${getTextLimit("message")}</p>
     ${raffleErrorMarkup()}
     ${raffleNavMarkup()}
   `;
@@ -942,8 +954,14 @@ function bindRaffleEvents(stepId) {
   const message = document.querySelector("#message");
   if (message) {
     message.addEventListener("input", (event) => {
-      raffleState.message = event.target.value;
-      document.querySelector("#messageCount").textContent = raffleState.message.length;
+      if (event.isComposing) return;
+
+      const nextMessage = setSanitizedRaffleInput(event.target, "message");
+      document.querySelector("#messageCount").textContent = nextMessage.length;
+    });
+    message.addEventListener("compositionend", (event) => {
+      const nextMessage = setSanitizedRaffleInput(event.target, "message");
+      document.querySelector("#messageCount").textContent = nextMessage.length;
     });
   }
 
@@ -963,7 +981,11 @@ function bindRaffleInput(field) {
   if (!input) return;
 
   input.addEventListener("input", (event) => {
-    raffleState[field] = event.target.value;
+    if (event.isComposing) return;
+    setSanitizedRaffleInput(event.target, field);
+  });
+  input.addEventListener("compositionend", (event) => {
+    setSanitizedRaffleInput(event.target, field);
   });
 }
 
@@ -1021,7 +1043,7 @@ function submitRaffleSurvey() {
 
   payloadInput.value = JSON.stringify({
     nickname: "",
-    contact: raffleState.contact,
+    contact: getRaffleText("contact"),
     fanType: raffleState.fanType,
     favoriteSong: isGuestRoute ? raffleState.discoverySong : getChoiceAnswer("favoriteSong", "favoriteSongCustom"),
     entryTime: isGuestRoute ? "" : getChoiceAnswer("entryTime", "entryTimeCustom"),
@@ -1030,10 +1052,10 @@ function submitRaffleSurvey() {
     apinkMemberCard: selectedCard ? `${selectedCard.color}：${selectedCard.member}` : "",
     discoveryStage: raffleState.discoveryStage,
     discoverySong: raffleState.discoverySong,
-    message: isGuestRoute ? guestSystemMessage : raffleState.message,
+    message: isGuestRoute ? guestSystemMessage : getRaffleText("message"),
     supportEnergy: raffleState.supportEnergy,
     consent: raffleState.consent,
-    website: raffleState.website,
+    website: getRaffleText("website"),
     userAgent: navigator.userAgent,
   });
   bridgeForm.submit();
@@ -1331,10 +1353,10 @@ function getYouTubeVideoId(url) {
 
 function getChoiceAnswer(field, customField) {
   if (raffleState[field] === CUSTOM_CHOICE_VALUE) {
-    return String(raffleState[customField] || "").trim();
+    return getRaffleText(customField);
   }
 
-  return String(raffleState[field] || "").trim();
+  return sanitizeUserText(raffleState[field]);
 }
 
 function validateChoiceAnswer(field, customField, errorMessage) {
@@ -1346,10 +1368,12 @@ function getSelectedMemberCard() {
 }
 
 function raffleFieldMarkup(id, label, value, placeholder) {
+  const maxLength = getTextLimit(id);
+
   return `
     <label class="raffle-field" for="${id}">
       <span>${label}</span>
-      <input id="${id}" type="text" value="${escapeHtml(value)}" placeholder="${placeholder}" autocomplete="off" />
+      <input id="${id}" type="text" maxlength="${maxLength}" value="${escapeHtml(sanitizeUserText(value, maxLength, { trim: false }))}" placeholder="${placeholder}" autocomplete="off" />
     </label>
   `;
 }
@@ -1374,6 +1398,35 @@ function raffleReviewItem(label, value) {
 
 function raffleErrorMarkup() {
   return raffleState.error ? `<p class="raffle-error" role="alert">${escapeHtml(raffleState.error)}</p>` : "";
+}
+
+function getTextLimit(field) {
+  return TEXT_LIMITS[field] || 500;
+}
+
+function getRaffleText(field) {
+  return sanitizeUserText(raffleState[field], getTextLimit(field));
+}
+
+function setSanitizedRaffleInput(input, field) {
+  const sanitized = sanitizeUserText(input.value, getTextLimit(field), { trim: false });
+  if (input.value !== sanitized) {
+    input.value = sanitized;
+  }
+  raffleState[field] = sanitized;
+  return sanitized;
+}
+
+function sanitizeUserText(value, maxLength = 500, { trim = true } = {}) {
+  const text = String(value ?? "")
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "")
+    .replace(/[\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF]/g, "")
+    .replace(/<[^>]*>/g, "")
+    .replace(/[<>]/g, "")
+    .replace(/\s+/g, " ");
+
+  const normalized = trim ? text.trim() : text.trimStart();
+  return normalized.slice(0, maxLength);
 }
 
 function escapeHtml(value) {

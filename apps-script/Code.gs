@@ -3,6 +3,18 @@ const WINNER_SHEET_NAME = 'Winners';
 const SERIAL_PREFIX = 'APINK-KWAVE';
 const WINNER_COUNT = 10;
 const PUBLIC_POOL_LIMIT = 36;
+const TEXT_LIMITS = {
+  CONTACT: 120,
+  FAVORITE_SONG: 80,
+  ENTRY_TIME: 80,
+  SUPPORT_MOMENT: 120,
+  MESSAGE: 180,
+  USER_AGENT: 400,
+  SUPPORT_GROUP: 80,
+  APINK_MEMBER_CARD: 120,
+  DISCOVERY_STAGE: 160,
+  DISCOVERY_SONG: 120
+};
 
 const RESPONSE_HEADERS = [
   'created_at',
@@ -68,20 +80,20 @@ function doPost(e) {
         new Date(),
         serial,
         clean_(data.nickname, 80),
-        clean_(data.contact, 120),
-        isGuestRoute ? '' : clean_(data.favoriteSong, 80),
-        isGuestRoute ? '' : clean_(data.entryTime, 80),
-        isGuestRoute ? '' : clean_(data.supportMoment, 120),
-        isGuestRoute ? '' : clean_(data.message, 220),
+        clean_(data.contact, TEXT_LIMITS.CONTACT),
+        isGuestRoute ? '' : clean_(data.favoriteSong, TEXT_LIMITS.FAVORITE_SONG),
+        isGuestRoute ? '' : clean_(data.entryTime, TEXT_LIMITS.ENTRY_TIME),
+        isGuestRoute ? '' : clean_(data.supportMoment, TEXT_LIMITS.SUPPORT_MOMENT),
+        isGuestRoute ? '' : clean_(data.message, TEXT_LIMITS.MESSAGE),
         Number(data.supportEnergy) || '',
         data.consent === true ? 'yes' : 'no',
         'eligible',
-        clean_(data.userAgent, 400),
+        clean_(data.userAgent, TEXT_LIMITS.USER_AGENT),
         clean_(data.fanType, 20),
-        clean_(data.supportGroup, 80),
-        clean_(data.apinkMemberCard, 120),
-        clean_(data.discoveryStage, 160),
-        clean_(data.discoverySong, 120)
+        clean_(data.supportGroup, TEXT_LIMITS.SUPPORT_GROUP),
+        clean_(data.apinkMemberCard, TEXT_LIMITS.APINK_MEMBER_CARD),
+        clean_(data.discoveryStage, TEXT_LIMITS.DISCOVERY_STAGE),
+        clean_(data.discoverySong, TEXT_LIMITS.DISCOVERY_SONG)
       ]);
 
       return htmlResponse_({ ok: true, serial });
@@ -149,21 +161,21 @@ function drawWinners() {
 
 function validatePayload_(data) {
   if (data.website) throw new Error('送出失敗');
-  if (!String(data.contact || '').trim()) throw new Error('請填寫 Threads 或 IG 帳號');
+  requireText_(data.contact, TEXT_LIMITS.CONTACT, '請填寫 Threads 或 IG 帳號', '聯絡帳號請控制在 120 字以內');
   if (!['yes', 'no'].includes(String(data.fanType || '').trim())) throw new Error('請選擇你是不是 Panda');
 
   if (String(data.fanType || '').trim() === 'no') {
-    if (!String(data.supportGroup || '').trim()) throw new Error('請選擇支持團體');
-    if (!String(data.discoverySong || '').trim()) throw new Error('請選擇一首試聽後喜歡的 APINK 歌曲');
-    if (!String(data.discoveryStage || '').trim()) throw new Error('請選擇參考後的想法');
+    requireText_(data.supportGroup, TEXT_LIMITS.SUPPORT_GROUP, '請選擇支持團體', '支持團體請控制在 80 字以內');
+    requireText_(data.discoverySong, TEXT_LIMITS.DISCOVERY_SONG, '請選擇一首試聽後喜歡的 APINK 歌曲', '歌曲名稱請控制在 120 字以內');
+    requireText_(data.discoveryStage, TEXT_LIMITS.DISCOVERY_STAGE, '請選擇參考後的想法', '參考後想法請控制在 160 字以內');
   } else {
-    if (!String(data.favoriteSong || '').trim()) throw new Error('請選擇主打歌或喜歡的歌');
-    if (!String(data.entryTime || '').trim()) throw new Error('請選擇入坑時間');
-    if (!String(data.supportMoment || '').trim()) throw new Error('請選擇入坑原因');
-    if (!String(data.message || '').trim()) throw new Error('請填寫應援訊息');
+    requireText_(data.favoriteSong, TEXT_LIMITS.FAVORITE_SONG, '請選擇主打歌或喜歡的歌', '歌名請控制在 80 字以內');
+    requireText_(data.entryTime, TEXT_LIMITS.ENTRY_TIME, '請選擇入坑時間', '入坑時間請控制在 80 字以內');
+    requireText_(data.supportMoment, TEXT_LIMITS.SUPPORT_MOMENT, '請選擇入坑原因', '入坑原因請控制在 120 字以內');
+    requireText_(data.message, TEXT_LIMITS.MESSAGE, '請填寫應援訊息', '應援訊息過長');
   }
 
-  if (String(data.message || '').trim().length > 180) throw new Error('應援訊息過長');
+  validateTextLength_(data.message, TEXT_LIMITS.MESSAGE, '應援訊息過長');
   if (data.consent !== true) throw new Error('請勾選聲明');
 
   const energy = Number(data.supportEnergy);
@@ -189,9 +201,9 @@ function getPublicPoolEntries_(limit) {
   const entries = values.slice(1).map((row) => {
     const status = statusIndex >= 0 ? String(row[statusIndex] || '').trim().toLowerCase() : 'eligible';
     const fanType = fanTypeIndex >= 0 ? String(row[fanTypeIndex] || '').trim() : 'yes';
-    const song = cleanPublicText_(row[favoriteSongIndex], 80);
-    const reason = cleanPublicText_(row[supportMomentIndex], 120);
-    const message = cleanPublicText_(row[messageIndex], 180);
+    const song = cleanPublicText_(row[favoriteSongIndex], TEXT_LIMITS.FAVORITE_SONG);
+    const reason = cleanPublicText_(row[supportMomentIndex], TEXT_LIMITS.SUPPORT_MOMENT);
+    const message = cleanPublicText_(row[messageIndex], TEXT_LIMITS.MESSAGE);
 
     if (status && status !== 'eligible') return null;
     if (fanType && fanType !== 'yes') return null;
@@ -263,12 +275,36 @@ function normalizeContact_(value) {
 }
 
 function clean_(value, maxLength) {
-  const text = String(value || '').replace(/\s+/g, ' ').trim().slice(0, maxLength || 500);
+  const text = sanitizeText_(value, maxLength);
   return /^[=+\-@]/.test(text) ? `'${text}` : text;
 }
 
 function cleanPublicText_(value, maxLength) {
-  return String(value || '').replace(/\s+/g, ' ').trim().slice(0, maxLength || 500);
+  return sanitizeText_(value, maxLength).replace(/^'(?=[=+\-@])/, '');
+}
+
+function sanitizeText_(value, maxLength) {
+  return String(value || '')
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+    .replace(/[\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF]/g, '')
+    .replace(/<[^>]*>/g, '')
+    .replace(/[<>]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, maxLength || 500);
+}
+
+function requireText_(value, maxLength, emptyMessage, tooLongMessage) {
+  const text = sanitizeText_(value, maxLength + 1);
+  if (!text) throw new Error(emptyMessage);
+  if (text.length > maxLength) throw new Error(tooLongMessage);
+  return text;
+}
+
+function validateTextLength_(value, maxLength, tooLongMessage) {
+  if (sanitizeText_(value, maxLength + 1).length > maxLength) {
+    throw new Error(tooLongMessage);
+  }
 }
 
 function publicResponse_(payload, callback) {
