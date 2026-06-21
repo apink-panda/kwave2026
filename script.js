@@ -129,7 +129,6 @@ const raffleState = {
   entryTimeCustom: "",
   supportMoment: "",
   supportMomentCustom: "",
-  supportGroup: "",
   apinkMemberCard: "",
   discoveryStage: "",
   discoverySong: "",
@@ -144,8 +143,7 @@ const raffleState = {
 };
 
 const CUSTOM_CHOICE_VALUE = "__custom__";
-
-const supportGroupOptions = ["HIGHLIGHT", "CRAVITY", "NEWBEAT", "FLARE U", "都不是，我是來湊熱鬧的"];
+const GUEST_SUPPORT_GROUP_FALLBACK = "未詢問";
 
 const apinkTitleTrackOptions = [
   "I Don't Know（Seven Springs of Apink）",
@@ -187,7 +185,7 @@ const pandaJoinReasonOptions = [
 ];
 
 const pandaMessageTemplates = [
-  "謝謝 APINK 一直用歌曲陪著我們，今天也會用力應援。",
+  "謝謝 APINK 一直用歌曲陪著我們，我們也會用力應援。",
   "不管過了多久，Panda 都會在這裡替 APINK 留一盞粉紅色的光。",
   "希望成員們健康、開心，舞台上台下都被很多愛包圍。",
   "祝福十五週年快樂，一起再留下更多美麗的回憶。",
@@ -321,16 +319,6 @@ const raffleSteps = [
     validate: () => validateChoiceAnswer("supportMoment", "supportMomentCustom", "請選擇或填寫入坑原因"),
   },
   {
-    id: "supportGroup",
-    label: "GUEST BADGE",
-    render: () => renderRaffleChoice({
-      field: "supportGroup",
-      title: "今天你主要支持哪一個團體？",
-      options: supportGroupOptions,
-    }),
-    validate: () => raffleState.supportGroup ? "" : "請選擇支持團體",
-  },
-  {
     id: "memberCard",
     label: "COLOR CARD",
     render: renderRaffleMemberCard,
@@ -423,7 +411,7 @@ function renderRaffle() {
 
 function getActiveRaffleSteps() {
   const routeIds = raffleState.fanType === "no"
-    ? ["fanType", "supportGroup", "discoverySong", "discoveryStage", "energy", "profile", "review", "result"]
+    ? ["fanType", "discoverySong", "discoveryStage", "energy", "profile", "review", "result"]
     : ["fanType", "favoriteSong", "entryTime", "supportMoment", "message", "energy", "profile", "review", "result"];
 
   return routeIds.map((id) => raffleSteps.find((step) => step.id === id));
@@ -790,7 +778,7 @@ function renderRaffleMessage() {
     </div>
     <label class="raffle-textarea">
       <span>自己填寫應援訊息</span>
-      <textarea id="message" maxlength="180" rows="5" placeholder="今天也一起把粉紅波浪推到最亮。">${escapeHtml(raffleState.message)}</textarea>
+      <textarea id="message" maxlength="180" rows="5" placeholder="一起把粉紅波浪推到最亮。">${escapeHtml(raffleState.message)}</textarea>
     </label>
     <p class="raffle-count"><span id="messageCount">${raffleState.message.length}</span>/180</p>
     ${raffleErrorMarkup()}
@@ -818,7 +806,6 @@ function renderRaffleEnergy() {
 function renderRaffleReview() {
   const routeItems = raffleState.fanType === "no"
     ? [
-      raffleReviewItem("支持團體", raffleState.supportGroup),
       raffleReviewItem("試聽後喜歡的歌", raffleState.discoverySong),
       raffleReviewItem("參考後想法", raffleState.discoveryStage),
     ]
@@ -1037,9 +1024,9 @@ function submitRaffleSurvey() {
     contact: raffleState.contact,
     fanType: raffleState.fanType,
     favoriteSong: isGuestRoute ? raffleState.discoverySong : getChoiceAnswer("favoriteSong", "favoriteSongCustom"),
-    entryTime: isGuestRoute ? raffleState.supportGroup : getChoiceAnswer("entryTime", "entryTimeCustom"),
+    entryTime: isGuestRoute ? "" : getChoiceAnswer("entryTime", "entryTimeCustom"),
     supportMoment: isGuestRoute ? raffleState.discoveryStage : getChoiceAnswer("supportMoment", "supportMomentCustom"),
-    supportGroup: raffleState.supportGroup,
+    supportGroup: isGuestRoute ? GUEST_SUPPORT_GROUP_FALLBACK : "",
     apinkMemberCard: selectedCard ? `${selectedCard.color}：${selectedCard.member}` : "",
     discoveryStage: raffleState.discoveryStage,
     discoverySong: raffleState.discoverySong,
@@ -1292,7 +1279,6 @@ function setFanType(nextFanType) {
   raffleState.entryTimeCustom = "";
   raffleState.supportMoment = "";
   raffleState.supportMomentCustom = "";
-  raffleState.supportGroup = "";
   raffleState.apinkMemberCard = "";
   raffleState.discoveryStage = "";
   raffleState.discoverySong = "";
