@@ -2322,6 +2322,22 @@ h1 span {
   line-height: 1.6;
 }
 
+.raffle-result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.7rem;
+  width: min(100%, 28rem);
+}
+
+.serial-action-status {
+  min-height: 1.35rem;
+  color: rgb(53 27 76 / 56%);
+  font-size: 0.82rem;
+  font-weight: 800;
+  line-height: 1.5;
+}
+
 @keyframes keychain-turn {
   from {
     transform: rotateY(0deg) rotateZ(1deg);
