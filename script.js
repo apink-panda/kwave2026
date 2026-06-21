@@ -129,6 +129,7 @@ const raffleState = {
   entryTimeCustom: "",
   supportMoment: "",
   supportMomentCustom: "",
+  supportGroup: "",
   apinkMemberCard: "",
   discoveryStage: "",
   discoverySong: "",
@@ -143,15 +144,17 @@ const raffleState = {
 };
 
 const CUSTOM_CHOICE_VALUE = "__custom__";
-const GUEST_SUPPORT_GROUP_FALLBACK = "未詢問";
 const TEXT_LIMITS = {
   contact: 120,
+  supportGroup: 80,
   favoriteSongCustom: 80,
   entryTimeCustom: 80,
   supportMomentCustom: 120,
   message: 180,
   website: 80,
 };
+
+const supportGroupOptions = ["HIGHLIGHT", "CRAVITY", "NEWBEAT", "FLARE U", "都不是，我是來湊熱鬧的"];
 
 const apinkTitleTrackOptions = [
   "I Don't Know（Seven Springs of Apink）",
@@ -327,6 +330,16 @@ const raffleSteps = [
     validate: () => validateChoiceAnswer("supportMoment", "supportMomentCustom", "請選擇或填寫入坑原因"),
   },
   {
+    id: "supportGroup",
+    label: "GUEST BADGE",
+    render: () => renderRaffleChoice({
+      field: "supportGroup",
+      title: "你主要支持哪一個團體？",
+      options: supportGroupOptions,
+    }),
+    validate: () => getRaffleText("supportGroup") ? "" : "請選擇支持團體",
+  },
+  {
     id: "memberCard",
     label: "COLOR CARD",
     render: renderRaffleMemberCard,
@@ -420,7 +433,7 @@ function renderRaffle() {
 
 function getActiveRaffleSteps() {
   const routeIds = raffleState.fanType === "no"
-    ? ["fanType", "discoverySong", "discoveryStage", "energy", "profile", "review", "result"]
+    ? ["fanType", "supportGroup", "discoverySong", "discoveryStage", "energy", "profile", "review", "result"]
     : ["fanType", "favoriteSong", "entryTime", "supportMoment", "message", "energy", "profile", "review", "result"];
 
   return routeIds.map((id) => raffleSteps.find((step) => step.id === id));
@@ -818,6 +831,7 @@ function renderRaffleEnergy() {
 function renderRaffleReview() {
   const routeItems = raffleState.fanType === "no"
     ? [
+      raffleReviewItem("支持團體", raffleState.supportGroup),
       raffleReviewItem("試聽後喜歡的歌", raffleState.discoverySong),
       raffleReviewItem("參考後想法", raffleState.discoveryStage),
     ]
@@ -1048,7 +1062,7 @@ function submitRaffleSurvey() {
     favoriteSong: isGuestRoute ? raffleState.discoverySong : getChoiceAnswer("favoriteSong", "favoriteSongCustom"),
     entryTime: isGuestRoute ? "" : getChoiceAnswer("entryTime", "entryTimeCustom"),
     supportMoment: isGuestRoute ? raffleState.discoveryStage : getChoiceAnswer("supportMoment", "supportMomentCustom"),
-    supportGroup: isGuestRoute ? GUEST_SUPPORT_GROUP_FALLBACK : "",
+    supportGroup: isGuestRoute ? getRaffleText("supportGroup") : "",
     apinkMemberCard: selectedCard ? `${selectedCard.color}：${selectedCard.member}` : "",
     discoveryStage: raffleState.discoveryStage,
     discoverySong: raffleState.discoverySong,
@@ -1301,6 +1315,7 @@ function setFanType(nextFanType) {
   raffleState.entryTimeCustom = "";
   raffleState.supportMoment = "";
   raffleState.supportMomentCustom = "";
+  raffleState.supportGroup = "";
   raffleState.apinkMemberCard = "";
   raffleState.discoveryStage = "";
   raffleState.discoverySong = "";
