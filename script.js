@@ -104,7 +104,7 @@ let supportPoolTimer = null;
 let supportPoolIndex = -1;
 let supportPoolLoading = false;
 
-const SUPPORT_POOL_ROTATION_MS = 10000;
+const SUPPORT_POOL_ROTATION_MS = 5000;
 const SUPPORT_POOL_REQUEST_TIMEOUT_MS = 9000;
 const SUPPORT_POOL_LIMIT = 36;
 

@@ -1354,20 +1354,6 @@ h1 span {
   backdrop-filter: blur(16px);
 }
 
-.raffle-prize-visual {
-  width: min(100%, 35rem);
-  margin: 1.8rem 0 0;
-}
-
-.raffle-prize-visual img {
-  display: block;
-  width: 100%;
-  height: auto;
-  border: 1px solid rgb(53 27 76 / 8%);
-  border-radius: 0.9rem;
-  box-shadow: 0 22px 56px rgb(79 39 91 / 12%);
-}
-
 .raffle-prize strong {
   color: var(--pink);
   font: 800 2.4rem/1 "Outfit", sans-serif;
@@ -2551,7 +2537,6 @@ h1 span {
   }
 
   .raffle-copy .eyebrow,
-  .raffle-prize-visual,
   .raffle-prize,
   .raffle-note {
     margin-inline: auto;
