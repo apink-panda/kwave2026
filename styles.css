@@ -523,13 +523,28 @@ h1 span {
 }
 
 .site-footer {
+  flex-wrap: wrap;
+  gap: 0.55rem 1rem;
   min-height: 80px;
+  padding: 0.8rem 0 1rem;
   border-top: 1px solid rgb(53 27 76 / 10%);
   color: rgb(53 27 76 / 48%);
   font-family: "Outfit", sans-serif;
   font-size: 0.6rem;
   font-weight: 600;
   letter-spacing: 0.18em;
+}
+
+.footer-disclaimer {
+  flex: 0 0 100%;
+  margin: -0.15rem 0 0;
+  color: rgb(53 27 76 / 56%);
+  font-family: "Noto Sans TC", sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 1.6;
+  text-align: center;
 }
 
 .pagination {
@@ -2709,7 +2724,7 @@ h1 span {
     min-height: 68px;
   }
 
-  .site-footer > p {
+  .site-footer > p:not(.footer-disclaimer) {
     display: none;
   }
 
