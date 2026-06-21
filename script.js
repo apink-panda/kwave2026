@@ -445,7 +445,7 @@ function initSupportPool() {
 }
 
 function loadSupportPoolEntries(options = {}) {
-  const { quiet = false, renderOnSuccess = true } = options;
+  const { renderOnSuccess = true } = options;
   const appsScriptUrl = String(raffleConfig.appsScriptUrl || "").trim();
   if (!appsScriptUrl) {
     setSupportPoolStatus("匿名顯示 Mission 回答，不會顯示帳號。");
@@ -454,9 +454,6 @@ function loadSupportPoolEntries(options = {}) {
   if (supportPoolLoading) return;
 
   supportPoolLoading = true;
-  if (!quiet) {
-    setSupportPoolStatus("正在讀取 Google Sheet 回答...");
-  }
 
   const callbackName = `__kwaveSupportPool${Date.now()}${Math.floor(Math.random() * 1000)}`;
   const script = document.createElement("script");
@@ -470,7 +467,7 @@ function loadSupportPoolEntries(options = {}) {
 
   const timeoutId = window.setTimeout(() => {
     finishRequest();
-    setSupportPoolStatus("目前無法讀取 Google Sheet，大眾池會先顯示預設內容。");
+    setSupportPoolStatus("目前暫時無法更新大眾池，會先顯示預設內容。");
   }, SUPPORT_POOL_REQUEST_TIMEOUT_MS);
 
   window[callbackName] = (payload) => {
@@ -487,7 +484,7 @@ function loadSupportPoolEntries(options = {}) {
         showNextSupportPoolEntry();
       }
     } else {
-      setSupportPoolStatus("目前 Google Sheet 尚無可公開的 Panda 回答。");
+      setSupportPoolStatus("目前尚無可公開的 Panda 回答。");
     }
   };
 
@@ -495,7 +492,7 @@ function loadSupportPoolEntries(options = {}) {
   script.async = true;
   script.onerror = () => {
     finishRequest();
-    setSupportPoolStatus("目前無法讀取 Google Sheet，大眾池會先顯示預設內容。");
+    setSupportPoolStatus("目前暫時無法更新大眾池，會先顯示預設內容。");
   };
   document.head.appendChild(script);
 }
@@ -511,7 +508,7 @@ function startSupportPoolRotation() {
   window.clearInterval(supportPoolTimer);
   supportPoolTimer = window.setInterval(() => {
     showNextSupportPoolEntry();
-    loadSupportPoolEntries({ quiet: true, renderOnSuccess: false });
+    loadSupportPoolEntries({ renderOnSuccess: false });
   }, SUPPORT_POOL_ROTATION_MS);
 }
 
