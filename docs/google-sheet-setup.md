@@ -72,7 +72,7 @@ window.KWAVE_CONFIG = {
 ## 5. 測試送出
 
 1. 開啟 GitHub Pages 網址。
-2. 用測試暱稱與測試聯絡方式完成問卷。
+2. 用測試 IG 或 Threads 帳號完成問卷。
 3. 完成後頁面應顯示序號，例如：
 
 ```text
@@ -90,7 +90,7 @@ APINK-KWAVE-000001-A1B2C3
 - `support_moment`
 - `message`
 
-不會公開 `nickname`、`contact` 或抽獎序號。
+不會公開 `contact` 或抽獎序號。
 
 部署 Web App 後，可以在瀏覽器打開：
 
@@ -122,7 +122,7 @@ https://script.google.com/macros/s/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/exec?action=
 | --- | --- |
 | `created_at` | 送出時間 |
 | `serial` | 抽獎序號，由 Apps Script 產生 |
-| `nickname` | 粉絲暱稱 |
+| `nickname` | 保留欄位，可留空 |
 | `contact` | Threads 或 IG 帳號，中獎聯繫用 |
 | `favorite_song` | Panda 路線的主打歌 / 喜歡的歌答案，非 Panda 路線留空 |
 | `entry_time` | Panda 路線的入坑時間答案，非 Panda 路線留空 |

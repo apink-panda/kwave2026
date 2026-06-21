@@ -274,7 +274,6 @@ const raffleSteps = [
     label: "FAN BADGE",
     render: renderRaffleProfile,
     validate() {
-      if (!raffleState.nickname.trim()) return "請填寫暱稱";
       if (!raffleState.contact.trim()) return "請填寫 Threads 或 IG 帳號";
       if (!raffleState.consent) return "請勾選聲明";
       return "";
@@ -625,7 +624,6 @@ function renderRaffleProfile() {
       <h3>登記你的粉絲名牌</h3>
     </div>
     <div class="raffle-form-grid">
-      ${raffleFieldMarkup("nickname", "暱稱", raffleState.nickname, "Panda 暱稱")}
       ${raffleFieldMarkup("contact", "Threads 或 IG 帳號", raffleState.contact, "中獎聯繫用")}
       <label class="raffle-check">
         <input id="consent" type="checkbox" ${raffleState.consent ? "checked" : ""} />
@@ -838,7 +836,6 @@ function renderRaffleReview() {
       <h3>確認後取得抽獎序號</h3>
     </div>
     <dl class="raffle-review">
-      ${raffleReviewItem("暱稱", raffleState.nickname)}
       ${raffleReviewItem("聯絡方式", raffleState.contact)}
       ${raffleReviewItem("是否 Panda", raffleState.fanType === "no" ? "還不是，想更認識 APINK" : "是，我是 Panda")}
       ${routeItems.join("")}
@@ -889,7 +886,6 @@ function bindRaffleEvents(stepId) {
   }
 
   if (stepId === "profile") {
-    bindRaffleInput("nickname");
     bindRaffleInput("contact");
     bindRaffleInput("website");
 
@@ -1028,7 +1024,7 @@ function submitRaffleSurvey() {
   const guestSystemMessage = "非 Panda 路線未填寫感想";
 
   payloadInput.value = JSON.stringify({
-    nickname: raffleState.nickname,
+    nickname: "",
     contact: raffleState.contact,
     fanType: raffleState.fanType,
     favoriteSong: isGuestRoute ? raffleState.discoverySong : getChoiceAnswer("favoriteSong", "favoriteSongCustom"),

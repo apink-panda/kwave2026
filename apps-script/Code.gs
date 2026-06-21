@@ -149,7 +149,6 @@ function drawWinners() {
 
 function validatePayload_(data) {
   if (data.website) throw new Error('送出失敗');
-  if (!String(data.nickname || '').trim()) throw new Error('請填寫暱稱');
   if (!String(data.contact || '').trim()) throw new Error('請填寫 Threads 或 IG 帳號');
   if (!['yes', 'no'].includes(String(data.fanType || '').trim())) throw new Error('請選擇你是不是 Panda');
 
