@@ -189,7 +189,7 @@ const pandaMessageTemplates = [
   "謝謝 APINK 一直用歌曲陪著我們，今天也會用力應援。",
   "不管過了多久，Panda 都會在這裡替 APINK 留一盞粉紅色的光。",
   "希望成員們健康、開心，舞台上台下都被很多愛包圍。",
-  "Love Me More 活動也辛苦了，今天一起留下漂亮的回憶。",
+  "祝福十五週年快樂，一起再留下更多美麗的回憶。",
 ];
 
 const guestDefaultSongPreview = {
