@@ -1,0 +1,39 @@
+<svg width="720" height="960" viewBox="0 0 720 960" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="card" x1="96" y1="80" x2="624" y2="880" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff7fb"/>
+      <stop offset="0.36" stop-color="#ffe4ef"/>
+      <stop offset="0.68" stop-color="#dcfbf5"/>
+      <stop offset="1" stop-color="#fff4c7"/>
+    </linearGradient>
+    <linearGradient id="shine" x1="120" y1="132" x2="560" y2="760" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.75"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="shadow" x="36" y="36" width="648" height="888" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="34" stdDeviation="34" flood-color="#1b2234" flood-opacity="0.22"/>
+    </filter>
+  </defs>
+  <rect width="720" height="960" fill="#f7fbff"/>
+  <g filter="url(#shadow)">
+    <rect x="96" y="72" width="528" height="816" rx="46" fill="url(#card)"/>
+    <rect x="124" y="100" width="472" height="760" rx="34" stroke="#1d2230" stroke-opacity="0.16" stroke-width="3"/>
+    <path d="M190 212C259 147 381 135 474 193C555 244 575 351 531 432C490 507 404 545 311 529C210 511 145 431 153 339C157 291 171 242 190 212Z" fill="#ff7db6" fill-opacity="0.32"/>
+    <path d="M228 628C286 574 385 561 463 610C531 653 548 743 511 811C476 874 404 906 326 892C241 877 186 809 193 732C196 692 212 653 228 628Z" fill="#00a99d" fill-opacity="0.22"/>
+    <path d="M444 286C489 263 543 270 572 312C600 352 592 408 558 440C520 476 461 476 424 440C381 399 391 314 444 286Z" fill="#ffc857" fill-opacity="0.5"/>
+    <path d="M166 128L558 704" stroke="url(#shine)" stroke-width="82" stroke-linecap="round"/>
+    <text x="360" y="402" text-anchor="middle" fill="#1d2230" font-family="Arial, Helvetica, sans-serif" font-size="66" font-weight="800" letter-spacing="0">APINK</text>
+    <text x="360" y="466" text-anchor="middle" fill="#1d2230" font-family="Arial, Helvetica, sans-serif" font-size="42" font-weight="700" letter-spacing="0">K-WAVE 2026</text>
+    <text x="360" y="546" text-anchor="middle" fill="#1d2230" fill-opacity="0.7" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="700" letter-spacing="0">MATTE SUPPORT CARD</text>
+    <circle cx="226" cy="730" r="13" fill="#ff7db6"/>
+    <circle cx="266" cy="730" r="13" fill="#00a99d"/>
+    <circle cx="306" cy="730" r="13" fill="#ffc857"/>
+    <circle cx="346" cy="730" r="13" fill="#6b5cff"/>
+    <g opacity="0.12" transform="rotate(-24 360 480)">
+      <text x="-80" y="280" fill="#ffffff" stroke="#351b4c" stroke-opacity="0.45" stroke-width="1.4" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="700">yung_hsin_c 應援專用 禁止轉賣</text>
+      <text x="80" y="420" fill="#ffffff" stroke="#351b4c" stroke-opacity="0.45" stroke-width="1.4" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="700">yung_hsin_c 應援專用 禁止轉賣</text>
+      <text x="-120" y="560" fill="#ffffff" stroke="#351b4c" stroke-opacity="0.45" stroke-width="1.4" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="700">yung_hsin_c 應援專用 禁止轉賣</text>
+      <text x="60" y="700" fill="#ffffff" stroke="#351b4c" stroke-opacity="0.45" stroke-width="1.4" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="700">yung_hsin_c 應援專用 禁止轉賣</text>
+    </g>
+  </g>
+</svg>

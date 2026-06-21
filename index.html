@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="zh-Hant">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Apink & Panda 粉絲自製應援網站，點擊圓形扇面切換日夜兩款設計。" />
+  <title>K-WAVE 2026 粉絲自製應援網站 | Apink & Panda</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Outfit:wght@500;600;700&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css?v=24" />
+</head>
+
+<body>
+  <div class="page-glow page-glow--pink" aria-hidden="true"></div>
+  <div class="page-glow page-glow--blue" aria-hidden="true"></div>
+
+  <header class="site-header">
+    <a class="brand" href="/kwave2026/" aria-label="粉絲自製應援網站首頁">
+      <span class="brand__spark" aria-hidden="true">✦</span>
+      <span class="brand__text">K-WAVE <span class="brand__suffix">粉絲自製</span></span>
+      <strong>應援網站</strong>
+    </a>
+    <div class="header-actions">
+      <nav class="site-nav" aria-label="主要導覽">
+        <a class="is-active" href="/kwave2026/" aria-current="page">主視覺</a>
+        <a href="/kwave2026/merch.html">應援物</a>
+        <a href="/kwave2026/support-pool.html">大眾池</a>
+        <a href="/kwave2026/#lucky-draw">抽獎任務</a>
+      </nav>
+      <p class="event-tag">KAOHSIUNG <span>2026</span></p>
+    </div>
+  </header>
+
+  <main class="hero">
+    <section class="hero__copy" aria-labelledby="page-title">
+      <p class="eyebrow"><span></span> APINK &amp; PANDA</p>
+      <h1 id="page-title">
+        夏日應援
+        <span>粉墨登場</span>
+      </h1>
+      <p class="intro">
+        一面是夢幻晚霞，一面是閃耀晴空。<br />
+        點一下，翻到今天最喜歡的風景。
+      </p>
+
+      <div class="hero-actions">
+        <a class="primary-link" href="/kwave2026/#lucky-draw">參加抽獎</a>
+        <a class="ghost-link" href="/kwave2026/merch.html">查看應援物</a>
+      </div>
+
+      <div class="side-status" aria-live="polite">
+        <span class="side-status__dot" aria-hidden="true"></span>
+        <span>目前扇面</span>
+        <strong id="current-side">INFINITY NIGHT</strong>
+      </div>
+    </section>
+
+    <section class="fan-stage" aria-label="可翻轉的雙面圓扇">
+      <div class="orbit orbit--outer" aria-hidden="true"></div>
+      <div class="orbit orbit--inner" aria-hidden="true"></div>
+      <span class="spark spark--one" aria-hidden="true">✦</span>
+      <span class="spark spark--two" aria-hidden="true">✦</span>
+      <span class="spark spark--three" aria-hidden="true">✦</span>
+
+      <button class="flip-card" id="flip-card" type="button" aria-label="翻轉扇面，目前顯示夢幻晚霞款" aria-pressed="false">
+        <span class="flip-card__inner">
+          <span class="flip-card__face flip-card__face--front">
+            <img
+              src="assets/fan_1_large.webp?v=wm1"
+              alt="K-WAVE INFINITY 夢幻晚霞款圓形扇面"
+              width="1800"
+              height="1800"
+              decoding="async"
+              fetchpriority="high"
+              draggable="false"
+            />
+          </span>
+          <span class="flip-card__face flip-card__face--back">
+            <img
+              src="assets/fan_2_large.webp?v=wm1"
+              alt="K-WAVE INFINITY 晴空海灘款圓形扇面"
+              width="1800"
+              height="1800"
+              decoding="async"
+              draggable="false"
+            />
+          </span>
+        </span>
+      </button>
+
+      <button class="flip-hint" id="flip-hint" type="button" aria-controls="flip-card">
+        <span class="flip-hint__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" role="img">
+            <path d="M4 8a8 8 0 0 1 13.7-3.6L20 6.7M20 3v3.7h-3.7" />
+            <path d="M20 16a8 8 0 0 1-13.7 3.6L4 17.3M4 21v-3.7h3.7" />
+          </svg>
+        </span>
+        <span>點擊翻面</span>
+      </button>
+    </section>
+  </main>
+
+  <section class="raffle-section" id="lucky-draw" aria-labelledby="raffle-title">
+    <div class="raffle-copy">
+      <p class="eyebrow"><span></span> LUCKY DRAW MISSION</p>
+      <h2 id="raffle-title">
+        完成粉絲任務
+        <span>取得抽獎序號</span>
+      </h2>
+      <p class="intro">
+        活動結束後將公布中獎名單，共 10 位可獲得應援物整組：
+        1 大 1 小扇子加 2 個鑰匙圈，需至現場領取。
+        未中獎者可於活動當天向應援主直接抽籤，領取其中一個應援物。
+        每款應援物數量有限，請當日儘早找到應援主領取，領完為止。
+      </p>
+      <figure class="raffle-prize-visual">
+        <img
+          src="assets/raffle-prize-set.webp?v=wm1"
+          alt="抽獎禮品應援物整組示意圖：1 大 1 小扇子，加白天與夜晚兩款鑰匙圈"
+          width="1448"
+          height="1086"
+          decoding="async"
+          loading="lazy"
+        />
+      </figure>
+      <div class="raffle-prize" aria-label="抽獎獎項">
+        <strong>10</strong>
+        <div>
+          <span>應援物整組</span>
+          <small>1 大 1 小扇子 + 2 個鑰匙圈 · 現場領取</small>
+        </div>
+      </div>
+      <p class="raffle-note">
+        <strong>領取注意事項</strong>
+        應援物數量有限，活動當天請儘早找應援主領取，領完為止。中獎者將以 IG 或 Threads 私訊確認；
+        每人限領一份，不得代領、多帳號或轉售，最終發放由應援主決定。此為粉絲自製商品，含 AI 協作，
+        實品可能有些許瑕疵，介意者請勿參加。
+        <strong>特別注意事項</strong>
+        本網站僅需暱稱與 IG 或 Threads 帳號作抽獎聯繫，不會要求其他個資、付款或匯款。
+        所有領取都在現場進行；若有人要求轉帳或提供更多個資，請留意疑似詐騙。
+      </p>
+    </div>
+
+    <div class="raffle-panel">
+      <div class="raffle-panel__topline">
+        <p id="raffle-step-label">FAN BADGE</p>
+        <div class="raffle-progress" aria-hidden="true">
+          <span id="raffle-progress-fill"></span>
+        </div>
+      </div>
+      <div id="raffle-root" class="raffle-root" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <footer class="site-footer">
+    <p>FOREVER WITH APINK</p>
+    <div class="pagination" aria-label="扇面頁次">
+      <button class="pagination__dot is-active" type="button" data-side="front" aria-label="顯示夢幻晚霞扇面"></button>
+      <button class="pagination__dot" type="button" data-side="back" aria-label="顯示晴空海灘扇面"></button>
+    </div>
+    <p>KAOHSIUNG · TAIWAN</p>
+  </footer>
+
+  <form id="surveyBridgeForm" method="POST" target="surveyBridgeFrame" hidden>
+    <input id="surveyPayload" name="payload" type="hidden" />
+  </form>
+  <iframe id="surveyBridgeFrame" name="surveyBridgeFrame" title="Google Sheet submission bridge" hidden></iframe>
+
+  <script src="config.js"></script>
+  <script src="script.js?v=24"></script>
+</body>
+
+</html>

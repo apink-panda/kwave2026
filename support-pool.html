@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="zh-Hant">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="APINK & Panda 應援大眾池，匿名展示粉絲在 Mission 中留下的歌曲、入坑原因與給 APINK 的話。" />
+  <title>應援大眾池 | Apink & Panda</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Outfit:wght@500;600;700&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css?v=24" />
+</head>
+
+<body class="support-pool-page">
+  <div class="page-glow page-glow--pink" aria-hidden="true"></div>
+  <div class="page-glow page-glow--blue" aria-hidden="true"></div>
+
+  <header class="site-header">
+    <a class="brand" href="/kwave2026/" aria-label="粉絲自製應援網站首頁">
+      <span class="brand__spark" aria-hidden="true">✦</span>
+      <span class="brand__text">K-WAVE <span class="brand__suffix">粉絲自製</span></span>
+      <strong>應援網站</strong>
+    </a>
+    <div class="header-actions">
+      <nav class="site-nav" aria-label="主要導覽">
+        <a href="/kwave2026/">主視覺</a>
+        <a href="/kwave2026/merch.html">應援物</a>
+        <a class="is-active" href="/kwave2026/support-pool.html" aria-current="page">大眾池</a>
+        <a href="/kwave2026/#lucky-draw">抽獎任務</a>
+      </nav>
+      <p class="event-tag">KAOHSIUNG <span>2026</span></p>
+    </div>
+  </header>
+
+  <main class="support-pool-main">
+    <section class="support-pool-hero" aria-labelledby="support-pool-page-title">
+      <div class="support-pool-copy">
+        <p class="eyebrow"><span></span> PUBLIC PANDA POOL</p>
+        <h1 id="support-pool-page-title">
+          應援大眾池
+          <span>粉紅留言漂浮中</span>
+        </h1>
+        <p class="intro">
+          匿名展示 Panda 在 Mission 中留下的入坑原因、最喜愛的歌曲，
+          以及想送給 APINK 的話。帳號與聯絡方式不會顯示在這裡。
+        </p>
+      </div>
+
+      <aside class="support-pool support-pool--page" id="support-pool" aria-labelledby="support-pool-title">
+        <div class="support-pool__header">
+          <p>RANDOM MESSAGE</p>
+          <h2 id="support-pool-title">來自 Panda 的應援</h2>
+        </div>
+        <div class="support-pool__stage" id="support-pool-stage" data-accent="pink" aria-live="polite">
+          <span class="support-pool__spark support-pool__spark--one" aria-hidden="true">✦</span>
+          <span class="support-pool__spark support-pool__spark--two" aria-hidden="true">✦</span>
+          <span class="support-pool__bubble support-pool__bubble--one" aria-hidden="true"></span>
+          <span class="support-pool__bubble support-pool__bubble--two" aria-hidden="true"></span>
+          <article class="support-pool-card" id="support-pool-card">
+            <span class="support-pool-card__label">最喜愛的歌曲</span>
+            <strong id="support-pool-song">Love Me More</strong>
+            <span class="support-pool-card__label">入坑原因</span>
+            <p id="support-pool-reason">Mission 回答累積中，送出後會匿名出現在這裡。</p>
+            <span class="support-pool-card__label">給 APINK 的話</span>
+            <p class="support-pool-card__message" id="support-pool-message">Panda 的應援訊息會在這裡漂浮登場。</p>
+          </article>
+        </div>
+        <p class="support-pool__status" id="support-pool-status">匿名顯示 Mission 回答，不會顯示帳號。</p>
+      </aside>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>FOREVER WITH APINK</p>
+    <div class="pagination" aria-label="應援大眾池裝飾頁次">
+      <span class="pagination__dot is-active" aria-hidden="true"></span>
+      <span class="pagination__dot" aria-hidden="true"></span>
+    </div>
+    <p>KAOHSIUNG · TAIWAN</p>
+  </footer>
+
+  <script src="config.js"></script>
+  <script src="script.js?v=24"></script>
+</body>
+
+</html>
