@@ -175,10 +175,9 @@ TRUE
 1. 確認 `apps-script/Code.gs` 已重新部署成最新 Web App 版本。
 2. 到 Google Sheet 的 `Settings` 工作表，把 `winner_draw_open` 改成 `TRUE`。
 3. 開啟網站的 `winners.html`。
-4. 點「觀看抽獎順序」會一位一位揭曉；點「直接看結果」會略過動畫直接顯示表格。
-5. 共抽出 10 位。
-6. 回到 Google Sheet，會看到新的 `Winners` 工作表。
-7. `Winners` 會保存固定的 10 筆中獎序號，並附上聯絡帳號與 Panda / 路人粉路線的主要問卷答案，方便管理者核對。
+4. 頁面會直接顯示中獎結果表格，共抽出 10 位。
+5. 回到 Google Sheet，會看到新的 `Winners` 工作表。
+6. `Winners` 會保存固定的 10 筆中獎序號，並附上聯絡帳號與 Panda / 路人粉路線的主要問卷答案，方便管理者核對。
 
 `Winners` 已有資料時，`winners.html` 會直接顯示同一批序號，不會重新抽選。若需要重抽，請先由管理者確認後手動清空 `Winners` 工作表。
 
