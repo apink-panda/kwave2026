@@ -11,7 +11,7 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Outfit:wght@500;600;700&display=swap"
     rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=25" />
+  <link rel="stylesheet" href="styles.css?v=26" />
 </head>
 
 <body class="winner-page">
@@ -63,9 +63,14 @@
         <div class="winner-picks" id="winner-picks" aria-label="已抽出的中獎序號"></div>
 
         <p class="winner-status" id="winner-status">連線中，讀取中獎結果。</p>
-        <button class="primary-link winner-draw-button" id="winner-draw-button" type="button" hidden>
-          觀看抽獎順序
-        </button>
+        <div class="winner-actions">
+          <button class="primary-link winner-draw-button" id="winner-draw-button" type="button" hidden>
+            觀看抽獎順序
+          </button>
+          <button class="ghost-link winner-result-button" id="winner-result-button" type="button" hidden>
+            直接看結果
+          </button>
+        </div>
       </section>
     </section>
 
@@ -106,7 +111,7 @@
   </footer>
 
   <script src="config.js"></script>
-  <script src="draw.js?v=2"></script>
+  <script src="draw.js?v=3"></script>
 </body>
 
 </html>

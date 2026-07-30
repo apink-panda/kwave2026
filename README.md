@@ -33,7 +33,7 @@ GitHub Pages 靜態應援網站。根目錄首頁使用扇面展示 UI，並在�
 
 ## 抽獎
 
-活動結束後，先到 Google Sheet 的 `Settings` 工作表把 `winner_draw_open` 改成 `TRUE`，再開啟 `winners.html`。頁面會從 `Responses` 裡 `status` 為 `eligible` 的資料隨機抽出 10 筆，逐位播放抽獎動畫，並建立 `Winners` 工作表。`winner_draw_open` 是 `FALSE` 時，頁面會顯示「尚未開放中獎名單」。`Winners` 已有資料時，頁面會直接顯示同一批中獎序號，不會重新抽選。
+活動結束後，先到 Google Sheet 的 `Settings` 工作表把 `winner_draw_open` 改成 `TRUE`，再開啟 `winners.html`。頁面會從 `Responses` 裡 `status` 為 `eligible` 的資料隨機抽出 10 筆，並建立 `Winners` 工作表。使用者可選擇「觀看抽獎順序」逐位播放動畫，或選擇「直接看結果」跳過動畫。`winner_draw_open` 是 `FALSE` 時，頁面會顯示「尚未開放中獎名單」。`Winners` 已有資料時，兩個選項都會使用同一批中獎序號，不會重新抽選。
 
 若需要在 Apps Script 編輯器手動執行，也可以執行 `drawWinners()`；同樣會優先回傳既有 `Winners` 名單。
 

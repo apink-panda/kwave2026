@@ -1,6 +1,7 @@
 const drawConfig = window.KWAVE_CONFIG || {};
 const winnerStatus = document.querySelector("#winner-status");
 const winnerButton = document.querySelector("#winner-draw-button");
+const winnerResultButton = document.querySelector("#winner-result-button");
 const winnerCount = document.querySelector("#winner-count");
 const winnerReel = document.querySelector("#winner-reel");
 const winnerReelCode = document.querySelector("#winner-reel-code");
@@ -15,15 +16,17 @@ const DRAW_REEL_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 let winnerLoading = false;
+let storedWinners = [];
 
 initWinnerPage();
 
 function initWinnerPage() {
-  if (!winnerStatus || !winnerButton || !winnerCount || !winnerReel || !winnerReelCode || !winnerPicks || !winnerResults || !winnerResultBody) {
+  if (!winnerStatus || !winnerButton || !winnerResultButton || !winnerCount || !winnerReel || !winnerReelCode || !winnerPicks || !winnerResults || !winnerResultBody) {
     return;
   }
 
-  winnerButton.addEventListener("click", drawWinners);
+  winnerButton.addEventListener("click", () => revealWinners({ animate: true }));
+  winnerResultButton.addEventListener("click", () => revealWinners({ animate: false }));
   loadStoredWinners();
 }
 
@@ -42,54 +45,61 @@ async function loadStoredWinners() {
     const winners = normalizeWinners(payload.winners);
 
     if (winners.length) {
-      showWinnerResults(winners, { existing: true });
+      storedWinners = winners;
+      showWinnerActionState("中獎名單已產生。");
       return;
     }
 
-    winnerButton.hidden = false;
-    setWinnerStatus("中獎名單已開放。");
+    storedWinners = [];
+    showWinnerActionState("中獎名單已開放。");
   } catch (error) {
     setWinnerStatus(error.message || "暫時無法讀取中獎結果。");
   }
 }
 
-async function drawWinners() {
+async function revealWinners({ animate }) {
   if (winnerLoading) return;
 
   winnerLoading = true;
-  winnerButton.disabled = true;
-  winnerButton.hidden = true;
+  setWinnerButtonsDisabled(true);
+  setWinnerButtonsHidden(true);
   winnerPicks.innerHTML = "";
   winnerResults.hidden = true;
   setWinnerCount(0);
   setWinnerStatus("抽獎系統準備中。");
 
   try {
-    const payload = await requestWinnerApi("draw-winners");
-    if (payload.drawOpen === false) {
-      showWinnerClosedState();
-      return;
+    let existing = Boolean(storedWinners.length);
+    let winners = storedWinners;
+
+    if (!winners.length) {
+      const payload = await requestWinnerApi("draw-winners");
+      if (payload.drawOpen === false) {
+        showWinnerClosedState();
+        return;
+      }
+
+      if (!payload.ok) {
+        throw new Error(payload.error || "抽獎失敗，請稍後再試。");
+      }
+
+      winners = normalizeWinners(payload.winners);
+      storedWinners = winners;
+      existing = Boolean(payload.existing);
     }
 
-    if (!payload.ok) {
-      throw new Error(payload.error || "抽獎失敗，請稍後再試。");
-    }
-
-    const winners = normalizeWinners(payload.winners);
     if (!winners.length) {
       throw new Error("目前沒有可顯示的中獎名單。");
     }
 
-    if (payload.existing) {
-      showWinnerResults(winners, { existing: true });
-      return;
+    if (animate) {
+      await animateWinnerDraw(winners);
     }
 
-    await animateWinnerDraw(winners);
-    showWinnerResults(winners, { existing: false });
+    showWinnerResults(winners, { existing });
   } catch (error) {
-    winnerButton.disabled = false;
-    winnerButton.hidden = false;
+    setWinnerButtonsDisabled(false);
+    setWinnerButtonsHidden(false);
     setWinnerStatus(error.message || "抽獎失敗，請稍後再試。");
   } finally {
     winnerLoading = false;
@@ -97,14 +107,26 @@ async function drawWinners() {
 }
 
 function showWinnerClosedState() {
-  winnerButton.hidden = true;
-  winnerButton.disabled = false;
+  storedWinners = [];
+  setWinnerButtonsHidden(true);
+  setWinnerButtonsDisabled(false);
   winnerResults.hidden = true;
   winnerPicks.innerHTML = "";
   winnerReel.classList.remove("is-spinning", "is-hit");
   winnerReelCode.textContent = "APINK-KWAVE";
   setWinnerCount(0);
   setWinnerStatus("尚未開放中獎名單");
+}
+
+function showWinnerActionState(message) {
+  setWinnerButtonsHidden(false);
+  setWinnerButtonsDisabled(false);
+  winnerResults.hidden = true;
+  winnerPicks.innerHTML = "";
+  winnerReel.classList.remove("is-spinning", "is-hit");
+  winnerReelCode.textContent = "APINK-KWAVE";
+  setWinnerCount(storedWinners.length);
+  setWinnerStatus(message);
 }
 
 async function animateWinnerDraw(winners) {
@@ -156,8 +178,8 @@ function appendWinnerPick(winner, index) {
 }
 
 function showWinnerResults(winners, { existing }) {
-  winnerButton.hidden = true;
-  winnerButton.disabled = false;
+  setWinnerButtonsHidden(true);
+  setWinnerButtonsDisabled(false);
   winnerPicks.innerHTML = "";
   winnerResultBody.innerHTML = winners.map((winner, index) => `
     <tr>
@@ -180,6 +202,16 @@ function showWinnerResults(winners, { existing }) {
   setWinnerStatus(existing ? "已讀取固定中獎名單。" : "中獎名單已固定保存。");
   winnerResults.hidden = false;
   winnerResults.scrollIntoView({ behavior: prefersReducedMotion ? "auto" : "smooth", block: "start" });
+}
+
+function setWinnerButtonsHidden(hidden) {
+  winnerButton.hidden = hidden;
+  winnerResultButton.hidden = hidden;
+}
+
+function setWinnerButtonsDisabled(disabled) {
+  winnerButton.disabled = disabled;
+  winnerResultButton.disabled = disabled;
 }
 
 function requestWinnerApi(action) {

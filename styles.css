@@ -1846,17 +1846,29 @@ h1 span {
   line-height: 1.55;
 }
 
-.winner-draw-button {
+.winner-actions {
   position: relative;
   z-index: 1;
-  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.72rem;
   margin-top: 1rem;
-  border: 0;
+}
+
+.winner-draw-button,
+.winner-result-button {
+  position: relative;
+  width: 100%;
   cursor: pointer;
   font-family: inherit;
 }
 
-.winner-draw-button:disabled {
+.winner-draw-button {
+  border: 0;
+}
+
+.winner-draw-button:disabled,
+.winner-result-button:disabled {
   cursor: not-allowed;
   opacity: 0.6;
 }
@@ -3058,6 +3070,10 @@ h1 span {
   .winner-picks {
     grid-template-columns: 1fr;
     min-height: 5rem;
+  }
+
+  .winner-actions {
+    grid-template-columns: 1fr;
   }
 
   .winner-results__header {
