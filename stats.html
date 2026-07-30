@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="zh-Hant">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="K-WAVE 2026 粉絲自製應援任務匿名統計排行，顯示最多人喜愛歌曲、入坑時間與入坑理由。" />
+  <title>統計排行 | K-WAVE 2026 粉絲自製應援網站</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Outfit:wght@500;600;700&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css?v=28" />
+</head>
+
+<body class="stats-page">
+  <div class="page-glow page-glow--pink" aria-hidden="true"></div>
+  <div class="page-glow page-glow--blue" aria-hidden="true"></div>
+
+  <header class="site-header">
+    <a class="brand" href="/kwave2026/" aria-label="粉絲自製應援網站首頁">
+      <span class="brand__spark" aria-hidden="true">✦</span>
+      <span class="brand__text">K-WAVE <span class="brand__suffix">粉絲自製</span></span>
+      <strong>應援網站</strong>
+    </a>
+    <div class="header-actions">
+      <nav class="site-nav" aria-label="主要導覽">
+        <a href="/kwave2026/">主視覺</a>
+        <a href="/kwave2026/merch.html">應援物</a>
+        <a href="/kwave2026/support-pool.html">大眾池</a>
+        <a href="/kwave2026/stats.html" class="is-active" aria-current="page">統計排行</a>
+        <a href="/kwave2026/#lucky-draw">抽獎任務</a>
+        <a href="/kwave2026/winners.html">中獎結果</a>
+      </nav>
+      <p class="event-tag">KAOHSIUNG <span>2026</span></p>
+    </div>
+  </header>
+
+  <main class="stats-main">
+    <section class="stats-hero" aria-labelledby="stats-page-title">
+      <div class="stats-copy">
+        <p class="eyebrow"><span></span> MISSION RANKING</p>
+        <h1 id="stats-page-title">
+          統計排行
+          <span>匿名應援資料</span>
+        </h1>
+      </div>
+
+      <section class="stats-summary" aria-labelledby="stats-summary-title">
+        <p id="stats-summary-title">PUBLIC STATS</p>
+        <strong id="stats-total">--</strong>
+        <span id="stats-updated">讀取中</span>
+      </section>
+    </section>
+
+    <section class="stats-grid" id="stats-grid" aria-live="polite">
+      <article class="stats-card" data-stats-section="favoriteSong">
+        <div class="stats-card__header">
+          <span>01</span>
+          <h2>最多人喜愛的歌曲</h2>
+        </div>
+        <div class="stats-list" data-stats-list="favoriteSong"></div>
+      </article>
+
+      <article class="stats-card" data-stats-section="entryTime">
+        <div class="stats-card__header">
+          <span>02</span>
+          <h2>最多人入坑時間</h2>
+        </div>
+        <div class="stats-list" data-stats-list="entryTime"></div>
+      </article>
+
+      <article class="stats-card" data-stats-section="supportMoment">
+        <div class="stats-card__header">
+          <span>03</span>
+          <h2>入坑理由排行</h2>
+        </div>
+        <div class="stats-list" data-stats-list="supportMoment"></div>
+      </article>
+    </section>
+
+    <p class="stats-status" id="stats-status">連線中，讀取統計排行。</p>
+  </main>
+
+  <footer class="site-footer">
+    <p>FOREVER WITH APINK</p>
+    <div class="pagination" aria-label="統計排行裝飾頁次">
+      <span class="pagination__dot is-active" aria-hidden="true"></span>
+      <span class="pagination__dot" aria-hidden="true"></span>
+    </div>
+    <p>KAOHSIUNG · TAIWAN</p>
+    <p class="footer-disclaimer">📌 本活動為粉絲自發性應援，所有應援周邊皆為自製且免費抽籤贈送，不進行任何商業販售，並與官方主辦單位無關。</p>
+  </footer>
+
+  <script src="config.js"></script>
+  <script src="stats.js?v=1"></script>
+</body>
+
+</html>

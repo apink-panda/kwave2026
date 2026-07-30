@@ -6,9 +6,12 @@ GitHub Pages 靜態應援網站。根目錄首頁使用扇面展示 UI，並在�
 
 - `index.html`：主視覺首頁與抽獎任務
 - `merch.html`：應援物展示頁
+- `support-pool.html`：匿名應援大眾池
+- `stats.html`：匿名統計排行頁
 - `winners.html`：中獎抽選與結果公布頁
 - `styles.css`：頁面樣式
 - `script.js`：翻扇互動、問卷流程、表單送出、序號顯示
+- `stats.js`：讀取匿名統計排行並顯示前三組排行榜
 - `draw.js`：中獎結果讀取、固定名單建立與結果表格
 - `merch.js`：應援物展示互動
 - `assets/`：主視覺與應援物圖片
@@ -38,3 +41,7 @@ GitHub Pages 靜態應援網站。根目錄首頁使用扇面展示 UI，並在�
 若需要在 Apps Script 編輯器手動執行，也可以執行 `drawWinners()`；同樣會優先回傳既有 `Winners` 名單。
 
 同一個聯絡方式只會取得一組序號。若粉絲重複送出，網頁會重新顯示原本的序號。
+
+## 統計排行
+
+`stats.html` 會讀取 Apps Script 的 `action=stats`，只顯示聚合後的匿名排行榜：`favorite_song`、`entry_time`、`support_moment`。頁面不公開聯絡方式、序號或單筆回覆。

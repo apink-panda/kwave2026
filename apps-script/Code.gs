@@ -72,6 +72,13 @@ function doGet(e) {
     }, params.callback);
   }
 
+  if (String(params.action || '').trim() === 'stats') {
+    return publicResponse_({
+      ok: true,
+      stats: getPublicStats_()
+    }, params.callback);
+  }
+
   if (String(params.action || '').trim() === 'winners') {
     if (!isWinnerDrawOpen_()) {
       return publicResponse_({
@@ -315,6 +322,97 @@ function getPublicPoolEntries_(limit) {
 
   shuffle_(entries);
   return entries.slice(0, Math.max(0, limit));
+}
+
+function getPublicStats_() {
+  const sheet = getResponsesSheet_();
+  ensureHeaders_(sheet);
+
+  const values = sheet.getDataRange().getValues();
+  if (values.length < 2) {
+    return {
+      totalEligible: 0,
+      sections: []
+    };
+  }
+
+  const headers = values[0].map((header) => String(header || '').trim());
+  const rows = values.slice(1).filter((row) => {
+    const serial = cleanPublicText_(getRowValue_(headers, row, 'serial'), 80);
+    const status = String(getRowValue_(headers, row, 'status') || '').trim().toLowerCase();
+    return serial && status === 'eligible';
+  });
+
+  return {
+    totalEligible: rows.length,
+    generatedAt: formatPublicDate_(new Date()),
+    sections: [
+      createRankingSection_(headers, rows, {
+        key: 'favoriteSong',
+        field: 'favorite_song',
+        title: '最多人喜愛的歌曲',
+        emptyText: '目前尚無歌曲統計資料。',
+        maxLength: TEXT_LIMITS.FAVORITE_SONG
+      }),
+      createRankingSection_(headers, rows, {
+        key: 'entryTime',
+        field: 'entry_time',
+        title: '最多人入坑時間',
+        emptyText: '目前尚無入坑時間統計資料。',
+        maxLength: TEXT_LIMITS.ENTRY_TIME
+      }),
+      createRankingSection_(headers, rows, {
+        key: 'supportMoment',
+        fields: ['support_moment', 'support_monent'],
+        title: '入坑理由排行',
+        emptyText: '目前尚無入坑理由統計資料。',
+        maxLength: TEXT_LIMITS.SUPPORT_MOMENT
+      })
+    ]
+  };
+}
+
+function createRankingSection_(headers, rows, options) {
+  const fields = options.fields || [options.field];
+  const counts = {};
+  rows.forEach((row) => {
+    const value = getFirstPublicValue_(headers, row, fields, options.maxLength);
+    if (!value) return;
+    counts[value] = (counts[value] || 0) + 1;
+  });
+
+  const total = Object.keys(counts).reduce((sum, key) => sum + counts[key], 0);
+  const items = Object.keys(counts)
+    .map((label) => ({
+      label,
+      count: counts[label],
+      percent: total ? Math.round((counts[label] / total) * 1000) / 10 : 0
+    }))
+    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, 'zh-Hant'))
+    .slice(0, 12)
+    .map((item, index) => ({
+      rank: index + 1,
+      label: item.label,
+      count: item.count,
+      percent: item.percent
+    }));
+
+  return {
+    key: options.key,
+    title: options.title,
+    emptyText: options.emptyText,
+    total,
+    items
+  };
+}
+
+function getFirstPublicValue_(headers, row, fields, maxLength) {
+  for (let i = 0; i < fields.length; i++) {
+    const value = cleanPublicText_(getRowValue_(headers, row, fields[i]), maxLength);
+    if (value) return value;
+  }
+
+  return '';
 }
 
 function getResponsesSheet_() {

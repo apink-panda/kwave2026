@@ -116,7 +116,49 @@ https://script.google.com/macros/s/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/exec?action=
 
 如果更新 `apps-script/Code.gs` 之後沒有重新部署，大眾池頁面仍會顯示「Mission 回答累積中」，但不會影響抽獎送出。
 
-## 7. 欄位說明
+## 7. 測試統計排行
+
+「統計排行」頁面會讀取有效抽獎資料的匿名聚合結果，只公開：
+
+- `favorite_song`
+- `entry_time`
+- `support_moment`
+
+不會公開 `contact`、抽獎序號或單筆回覆內容。部署 Web App 後，可以在瀏覽器打開：
+
+```text
+https://script.google.com/macros/s/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/exec?action=stats
+```
+
+如果有有效資料，應看到類似：
+
+```json
+{
+  "source": "apink-kwave",
+  "ok": true,
+  "stats": {
+    "totalEligible": 12,
+    "sections": [
+      {
+        "key": "favoriteSong",
+        "title": "最多人喜愛的歌曲",
+        "items": [
+          {
+            "rank": 1,
+            "label": "Dumhdurum",
+            "count": 4,
+            "percent": 33.3
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+如果更新 `apps-script/Code.gs` 之後沒有重新部署，統計頁面會顯示無法讀取統計排行。
+
+## 8. 欄位說明
 
 | 欄位 | 用途 |
 | --- | --- |
