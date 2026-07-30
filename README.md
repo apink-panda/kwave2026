@@ -1,13 +1,15 @@
 # APINK K-WAVE 2026 應援網站
 
-GitHub Pages 靜態應援網站。根目錄首頁使用扇面展示 UI，並在同一頁整合 Lucky Draw Mission 問卷抽獎。粉絲完成任務後，前端會把問卷送到 Google Apps Script，Apps Script 產生抽獎序號並寫入 Google Sheet。活動結束後可在 Apps Script 手動抽出 10 位中獎序號。
+GitHub Pages 靜態應援網站。根目錄首頁使用扇面展示 UI，並在同一頁整合 Lucky Draw Mission 問卷抽獎。粉絲完成任務後，前端會把問卷送到 Google Apps Script，Apps Script 產生抽獎序號並寫入 Google Sheet。活動結束後可在中獎結果頁抽出 10 位中獎序號。
 
 ## 檔案
 
 - `index.html`：主視覺首頁與抽獎任務
 - `merch.html`：應援物展示頁
+- `winners.html`：中獎抽選與結果公布頁
 - `styles.css`：頁面樣式
 - `script.js`：翻扇互動、問卷流程、表單送出、序號顯示
+- `draw.js`：中獎結果讀取、逐位抽獎動畫與結果表格
 - `merch.js`：應援物展示互動
 - `assets/`：主視覺與應援物圖片
 - `config.js`：Apps Script Web App URL 設定
@@ -31,6 +33,8 @@ GitHub Pages 靜態應援網站。根目錄首頁使用扇面展示 UI，並在�
 
 ## 抽獎
 
-活動結束後，在 Apps Script 編輯器手動執行 `drawWinners()`。程式會從 `Responses` 裡 `status` 為 `eligible` 的資料隨機抽出最多 10 筆，並建立 `Winners` 工作表。
+活動結束後，開啟 `winners.html`。頁面會從 `Responses` 裡 `status` 為 `eligible` 的資料隨機抽出 10 筆，逐位播放抽獎動畫，並建立 `Winners` 工作表。`Winners` 已有資料時，頁面會直接顯示同一批中獎序號，不會重新抽選。
+
+若需要在 Apps Script 編輯器手動執行，也可以執行 `drawWinners()`；同樣會優先回傳既有 `Winners` 名單。
 
 同一個聯絡方式只會取得一組序號。若粉絲重複送出，網頁會重新顯示原本的序號。

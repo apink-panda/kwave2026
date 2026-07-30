@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="zh-Hant">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="K-WAVE 2026 粉絲自製應援抽獎結果頁，公布 10 位中獎序號。" />
+  <title>中獎結果 | K-WAVE 2026 粉絲自製應援網站</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Outfit:wght@500;600;700&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css?v=25" />
+</head>
+
+<body class="winner-page">
+  <div class="page-glow page-glow--pink" aria-hidden="true"></div>
+  <div class="page-glow page-glow--blue" aria-hidden="true"></div>
+
+  <header class="site-header">
+    <a class="brand" href="/kwave2026/" aria-label="粉絲自製應援網站首頁">
+      <span class="brand__spark" aria-hidden="true">✦</span>
+      <span class="brand__text">K-WAVE <span class="brand__suffix">粉絲自製</span></span>
+      <strong>應援網站</strong>
+    </a>
+    <div class="header-actions">
+      <nav class="site-nav" aria-label="主要導覽">
+        <a href="/kwave2026/">主視覺</a>
+        <a href="/kwave2026/merch.html">應援物</a>
+        <a href="/kwave2026/support-pool.html">大眾池</a>
+        <a href="/kwave2026/#lucky-draw">抽獎任務</a>
+        <a class="is-active" href="/kwave2026/winners.html" aria-current="page">中獎結果</a>
+      </nav>
+      <p class="event-tag">KAOHSIUNG <span>2026</span></p>
+    </div>
+  </header>
+
+  <main class="winner-main">
+    <section class="winner-hero" aria-labelledby="winner-page-title">
+      <div class="winner-copy">
+        <p class="eyebrow"><span></span> LUCKY DRAW RESULT</p>
+        <h1 id="winner-page-title">
+          中獎抽選
+          <span>10 位名單</span>
+        </h1>
+        <p class="intro">
+          以抽獎序號公布結果。名單產生後會固定保存在抽獎系統中，再次開啟本頁也會顯示同一批序號。
+        </p>
+      </div>
+
+      <section class="winner-machine" aria-labelledby="winner-machine-title">
+        <div class="winner-machine__media" aria-hidden="true">
+          <img src="assets/apink-wave-card.webp?v=wm1" alt="" width="1200" height="1200" decoding="async" />
+        </div>
+        <div class="winner-machine__topline">
+          <p id="winner-machine-title">RAFFLE MACHINE</p>
+          <strong id="winner-count">0/10</strong>
+        </div>
+
+        <div class="winner-reel" id="winner-reel" aria-live="polite">
+          <span>NOW DRAWING</span>
+          <strong id="winner-reel-code">APINK-KWAVE</strong>
+        </div>
+
+        <div class="winner-picks" id="winner-picks" aria-label="已抽出的中獎序號"></div>
+
+        <p class="winner-status" id="winner-status">連線中，讀取中獎結果。</p>
+        <button class="primary-link winner-draw-button" id="winner-draw-button" type="button" hidden>
+          開始抽獎
+        </button>
+      </section>
+    </section>
+
+    <section class="winner-results" id="winner-results" aria-labelledby="winner-results-title" hidden>
+      <div class="winner-results__header">
+        <div>
+          <p class="eyebrow"><span></span> WINNER BOARD</p>
+          <h2 id="winner-results-title">中獎結果</h2>
+        </div>
+        <span id="winner-drawn-at"></span>
+      </div>
+
+      <div class="winner-table-wrap">
+        <table class="winner-table">
+          <thead>
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col">抽獎序號</th>
+              <th scope="col">結果</th>
+            </tr>
+          </thead>
+          <tbody id="winner-result-body"></tbody>
+        </table>
+      </div>
+
+      <p class="winner-result-note">請以自己的抽獎序號核對結果；中獎者將由應援主私訊確認領取方式。</p>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>FOREVER WITH APINK</p>
+    <div class="pagination" aria-label="中獎結果裝飾頁次">
+      <span class="pagination__dot is-active" aria-hidden="true"></span>
+      <span class="pagination__dot" aria-hidden="true"></span>
+    </div>
+    <p>KAOHSIUNG · TAIWAN</p>
+    <p class="footer-disclaimer">📌 本活動為粉絲自發性應援，所有應援周邊皆為自製且免費抽籤贈送，不進行任何商業販售，並與官方主辦單位無關。</p>
+  </footer>
+
+  <script src="config.js"></script>
+  <script src="draw.js?v=1"></script>
+</body>
+
+</html>

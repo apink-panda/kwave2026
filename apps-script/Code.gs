@@ -3,6 +3,20 @@ const WINNER_SHEET_NAME = 'Winners';
 const SERIAL_PREFIX = 'APINK-KWAVE';
 const WINNER_COUNT = 10;
 const PUBLIC_POOL_LIMIT = 36;
+const WINNER_HEADERS = [
+  'drawn_at',
+  'serial',
+  'nickname',
+  'contact',
+  'favorite_song',
+  'entry_time',
+  'support_moment',
+  'fan_type',
+  'support_group',
+  'apink_member_card',
+  'discovery_stage',
+  'discovery_song'
+];
 const TEXT_LIMITS = {
   CONTACT: 120,
   FAVORITE_SONG: 80,
@@ -52,6 +66,17 @@ function doGet(e) {
       ok: true,
       entries: getPublicPoolEntries_(limit)
     }, params.callback);
+  }
+
+  if (String(params.action || '').trim() === 'winners') {
+    return publicResponse_({
+      ok: true,
+      winners: getPublicWinners_()
+    }, params.callback);
+  }
+
+  if (String(params.action || '').trim() === 'draw-winners') {
+    return publicResponse_(drawWinnersForRequest_(), params.callback);
   }
 
   return publicResponse_({ ok: true, service: 'apink-kwave' }, params.callback);
@@ -106,57 +131,110 @@ function doPost(e) {
 }
 
 function drawWinners() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const result = drawWinnersForRequest_();
+  Logger.log(JSON.stringify(result));
+  return result;
+}
+
+function drawWinnersForRequest_() {
+  const lock = LockService.getScriptLock();
+  let locked = false;
+
+  try {
+    lock.waitLock(10000);
+    locked = true;
+
+    const existingWinners = getPublicWinners_();
+    if (existingWinners.length) {
+      return {
+        ok: true,
+        existing: true,
+        winners: existingWinners
+      };
+    }
+
+    return drawAndStoreWinners_();
+  } catch (error) {
+    return {
+      ok: false,
+      error: error.message || '抽獎失敗，請稍後再試'
+    };
+  } finally {
+    if (locked) {
+      lock.releaseLock();
+    }
+  }
+}
+
+function drawAndStoreWinners_() {
   const responseSheet = getResponsesSheet_();
   ensureHeaders_(responseSheet);
 
   const values = responseSheet.getDataRange().getValues();
-  const rows = values.slice(1).filter((row) => {
-    const serial = String(row[1] || '').trim();
-    const status = String(row[10] || '').trim().toLowerCase();
+  if (values.length < 2) throw new Error('目前沒有可抽獎的有效名單。');
+
+  const headers = values[0].map((header) => String(header || '').trim());
+  const eligibleRows = values.slice(1).filter((row) => {
+    const serial = cleanPublicText_(getRowValue_(headers, row, 'serial'), 80);
+    const status = String(getRowValue_(headers, row, 'status') || '').trim().toLowerCase();
     return serial && status === 'eligible';
   });
 
-  shuffle_(rows);
+  if (eligibleRows.length < WINNER_COUNT) {
+    throw new Error(`目前有效名單不足 ${WINNER_COUNT} 位，尚未抽出中獎者。`);
+  }
 
-  const winners = rows.slice(0, Math.min(WINNER_COUNT, rows.length));
-  const winnerSheet = ss.getSheetByName(WINNER_SHEET_NAME) || ss.insertSheet(WINNER_SHEET_NAME);
-  winnerSheet.clearContents();
-  winnerSheet.appendRow([
-    'drawn_at',
-    'serial',
-    'nickname',
-    'contact',
-    'favorite_song',
-    'entry_time',
-    'support_moment',
-    'fan_type',
-    'support_group',
-    'apink_member_card',
-    'discovery_stage',
-    'discovery_song'
-  ]);
+  shuffle_(eligibleRows);
 
   const now = new Date();
-  winners.forEach((row) => {
-    winnerSheet.appendRow([
-      now,
-      row[1],
-      row[2],
-      row[3],
-      row[4],
-      row[5],
-      row[6],
-      row[12],
-      row[13],
-      row[14],
-      row[15],
-      row[16]
-    ]);
-  });
+  const winnerRows = eligibleRows.slice(0, WINNER_COUNT).map((row) => ([
+    now,
+    clean_(getRowValue_(headers, row, 'serial'), 80),
+    clean_(getRowValue_(headers, row, 'nickname'), 80),
+    clean_(getRowValue_(headers, row, 'contact'), TEXT_LIMITS.CONTACT),
+    clean_(getRowValue_(headers, row, 'favorite_song'), TEXT_LIMITS.FAVORITE_SONG),
+    clean_(getRowValue_(headers, row, 'entry_time'), TEXT_LIMITS.ENTRY_TIME),
+    clean_(getRowValue_(headers, row, 'support_moment'), TEXT_LIMITS.SUPPORT_MOMENT),
+    clean_(getRowValue_(headers, row, 'fan_type'), 20),
+    clean_(getRowValue_(headers, row, 'support_group'), TEXT_LIMITS.SUPPORT_GROUP),
+    clean_(getRowValue_(headers, row, 'apink_member_card'), TEXT_LIMITS.APINK_MEMBER_CARD),
+    clean_(getRowValue_(headers, row, 'discovery_stage'), TEXT_LIMITS.DISCOVERY_STAGE),
+    clean_(getRowValue_(headers, row, 'discovery_song'), TEXT_LIMITS.DISCOVERY_SONG)
+  ]));
 
+  const winnerSheet = getWinnerSheet_(true);
+  winnerSheet.clearContents();
+  winnerSheet.getRange(1, 1, 1, WINNER_HEADERS.length).setValues([WINNER_HEADERS]);
+  winnerSheet.getRange(2, 1, winnerRows.length, WINNER_HEADERS.length).setValues(winnerRows);
   winnerSheet.setFrozenRows(1);
-  winnerSheet.autoResizeColumns(1, 12);
+  winnerSheet.autoResizeColumns(1, WINNER_HEADERS.length);
+
+  return {
+    ok: true,
+    existing: false,
+    poolCount: eligibleRows.length,
+    winners: getPublicWinners_()
+  };
+}
+
+function getPublicWinners_() {
+  const winnerSheet = getWinnerSheet_(false);
+  if (!winnerSheet || winnerSheet.getLastRow() < 2) return [];
+
+  const values = winnerSheet.getDataRange().getValues();
+  const headers = values[0].map((header) => String(header || '').trim());
+  const serialIndex = headers.indexOf('serial');
+  if (serialIndex < 0) return [];
+
+  return values.slice(1).map((row) => {
+    const serial = cleanPublicText_(row[serialIndex], 80);
+    if (!serial) return null;
+
+    return {
+      serial,
+      drawnAt: formatPublicDate_(getRowValue_(headers, row, 'drawn_at'))
+    };
+  }).filter(Boolean).slice(0, WINNER_COUNT);
 }
 
 function validatePayload_(data) {
@@ -219,6 +297,24 @@ function getPublicPoolEntries_(limit) {
 function getResponsesSheet_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   return ss.getSheetByName(RESPONSE_SHEET_NAME) || ss.insertSheet(RESPONSE_SHEET_NAME);
+}
+
+function getWinnerSheet_(createIfMissing) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  return ss.getSheetByName(WINNER_SHEET_NAME) || (createIfMissing ? ss.insertSheet(WINNER_SHEET_NAME) : null);
+}
+
+function getRowValue_(headers, row, name) {
+  const index = headers.indexOf(name);
+  return index >= 0 ? row[index] : '';
+}
+
+function formatPublicDate_(value) {
+  if (Object.prototype.toString.call(value) === '[object Date]' && !isNaN(value.getTime())) {
+    return Utilities.formatDate(value, Session.getScriptTimeZone(), 'yyyy/MM/dd HH:mm');
+  }
+
+  return cleanPublicText_(value, 40);
 }
 
 function ensureHeaders_(sheet) {

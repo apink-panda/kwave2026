@@ -154,15 +154,18 @@ invalid
 
 活動結束後：
 
-1. 到 Apps Script 編輯器。
-2. function 下拉選單選 `drawWinners`。
-3. 點執行。
-4. 回到 Google Sheet，會看到新的 `Winners` 工作表。
-5. `Winners` 會包含最多 10 筆中獎序號，並附上 Panda / 路人粉路線的主要問卷答案，方便核對。
+1. 確認 `apps-script/Code.gs` 已重新部署成最新 Web App 版本。
+2. 開啟網站的 `winners.html`。
+3. 點「開始抽獎」。
+4. 頁面會一位一位揭曉，共抽出 10 位。
+5. 回到 Google Sheet，會看到新的 `Winners` 工作表。
+6. `Winners` 會保存固定的 10 筆中獎序號，並附上聯絡帳號與 Panda / 路人粉路線的主要問卷答案，方便管理者核對。
+
+`Winners` 已有資料時，`winners.html` 會直接顯示同一批序號，不會重新抽選。若需要重抽，請先由管理者確認後手動清空 `Winners` 工作表。
 
 ## 10. 公布中獎名單
 
-建議只公布 `serial`，不要公開 `contact`。
+公開結果頁只會顯示 `serial`，不會顯示 `contact`。
 
 可公布格式：
 
