@@ -167,8 +167,58 @@ function renderStats(stats) {
   statsTotal.textContent = `${stats.totalEligible} 筆有效回覆`;
   statsUpdated.textContent = stats.generatedAt ? `更新 ${stats.generatedAt}` : "已更新";
 
+  stats.sections.forEach(renderStatsLeader);
   stats.sections.forEach(renderStatsSection);
   setStatsStatus("統計排行已更新。");
+}
+
+function renderStatsLeader(section) {
+  const leaderElement = document.querySelector(`[data-stats-leader="${section.key}"]`);
+  if (!leaderElement) return;
+
+  leaderElement.replaceChildren();
+  const item = section.items[0];
+  if (!item) {
+    leaderElement.appendChild(createLeaderEmptyElement(section));
+    return;
+  }
+
+  const tag = document.createElement("span");
+  tag.className = "stats-leader__tag";
+  tag.textContent = `${section.title}第一名`;
+
+  const title = document.createElement("strong");
+  title.textContent = item.label;
+  title.title = item.label;
+
+  const meta = document.createElement("p");
+  meta.textContent = `${item.count} 票 · ${formatPercent(item.percent)}%`;
+
+  const bar = document.createElement("div");
+  bar.className = "stats-leader__bar";
+
+  const fill = document.createElement("span");
+  fill.style.width = `${Math.max(8, item.percent)}%`;
+  bar.appendChild(fill);
+
+  leaderElement.append(tag, title, meta, bar);
+}
+
+function createLeaderEmptyElement(section) {
+  const fragment = document.createDocumentFragment();
+
+  const tag = document.createElement("span");
+  tag.className = "stats-leader__tag";
+  tag.textContent = `${section.title}第一名`;
+
+  const title = document.createElement("strong");
+  title.textContent = "尚無資料";
+
+  const meta = document.createElement("p");
+  meta.textContent = section.emptyText;
+
+  fragment.append(tag, title, meta);
+  return fragment;
 }
 
 function renderStatsSection(section) {
@@ -230,7 +280,23 @@ function showStatsError(message) {
   statsTotal.textContent = "--";
   statsUpdated.textContent = "讀取失敗";
   STATS_SECTIONS.forEach((section) => {
+    const leaderElement = document.querySelector(`[data-stats-leader="${section.key}"]`);
     const listElement = document.querySelector(`[data-stats-list="${section.key}"]`);
+
+    if (leaderElement) {
+      const tag = document.createElement("span");
+      tag.className = "stats-leader__tag";
+      tag.textContent = `${section.title}第一名`;
+
+      const title = document.createElement("strong");
+      title.textContent = "讀取失敗";
+
+      const meta = document.createElement("p");
+      meta.textContent = message;
+
+      leaderElement.replaceChildren(tag, title, meta);
+    }
+
     if (!listElement) return;
 
     const empty = document.createElement("p");

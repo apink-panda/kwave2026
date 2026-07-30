@@ -11,7 +11,7 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Outfit:wght@500;600;700&display=swap"
     rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=28" />
+  <link rel="stylesheet" href="styles.css?v=29" />
 </head>
 
 <body class="stats-page">
@@ -54,6 +54,26 @@
       </section>
     </section>
 
+    <section class="stats-leaders" aria-label="各統計主題第一名" aria-live="polite">
+      <article class="stats-leader" data-stats-leader="favoriteSong">
+        <span class="stats-leader__tag">歌曲第一名</span>
+        <strong>讀取中</strong>
+        <p>--</p>
+      </article>
+
+      <article class="stats-leader" data-stats-leader="entryTime">
+        <span class="stats-leader__tag">入坑時間第一名</span>
+        <strong>讀取中</strong>
+        <p>--</p>
+      </article>
+
+      <article class="stats-leader" data-stats-leader="supportMoment">
+        <span class="stats-leader__tag">入坑理由第一名</span>
+        <strong>讀取中</strong>
+        <p>--</p>
+      </article>
+    </section>
+
     <section class="stats-grid" id="stats-grid" aria-live="polite">
       <article class="stats-card" data-stats-section="favoriteSong">
         <div class="stats-card__header">
@@ -94,7 +114,7 @@
   </footer>
 
   <script src="config.js"></script>
-  <script src="stats.js?v=1"></script>
+  <script src="stats.js?v=2"></script>
 </body>
 
 </html>
