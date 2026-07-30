@@ -39,7 +39,7 @@ discovery_song
 4. 儲存專案，專案名稱可用：`APINK K-WAVE Raffle API`。
 5. 在 Apps Script 編輯器上方的 function 下拉選單選 `setup`。
 6. 點執行，第一次會要求授權。
-7. 授權完成後，回到 Sheet 檢查 `Responses` 是否有正確欄位。
+7. 授權完成後，回到 Sheet 檢查 `Responses` 是否有正確欄位，並確認有 `Settings` 工作表。
 
 ## 3. 部署 Web App
 
@@ -150,16 +150,35 @@ invalid
 
 執行抽獎時，只有 `status` 是 `eligible` 的資料會進入抽獎池。
 
+## 8.5 中獎頁開關
+
+`setup()` 會建立 `Settings` 工作表，其中：
+
+| key | value | 用途 |
+| --- | --- | --- |
+| `winner_draw_open` | `FALSE` | 控制中獎頁是否開放 |
+
+`winner_draw_open` 預設為未勾選，也就是 `FALSE`。此時 `winners.html` 只會顯示「尚未開放中獎名單」，不會抽獎也不會公開既有中獎結果。
+
+活動要開放抽獎或公布結果時，勾選 `value` 欄的 checkbox，讓值變成：
+
+```text
+TRUE
+```
+
+這個開關讀取 Google Sheet 內容，切換時不需要重新部署 Web App。
+
 ## 9. 抽出 10 位中獎者
 
 活動結束後：
 
 1. 確認 `apps-script/Code.gs` 已重新部署成最新 Web App 版本。
-2. 開啟網站的 `winners.html`。
-3. 點「開始抽獎」。
-4. 頁面會一位一位揭曉，共抽出 10 位。
-5. 回到 Google Sheet，會看到新的 `Winners` 工作表。
-6. `Winners` 會保存固定的 10 筆中獎序號，並附上聯絡帳號與 Panda / 路人粉路線的主要問卷答案，方便管理者核對。
+2. 到 Google Sheet 的 `Settings` 工作表，把 `winner_draw_open` 改成 `TRUE`。
+3. 開啟網站的 `winners.html`。
+4. 點「觀看抽獎順序」。
+5. 頁面會一位一位揭曉，共抽出 10 位。
+6. 回到 Google Sheet，會看到新的 `Winners` 工作表。
+7. `Winners` 會保存固定的 10 筆中獎序號，並附上聯絡帳號與 Panda / 路人粉路線的主要問卷答案，方便管理者核對。
 
 `Winners` 已有資料時，`winners.html` 會直接顯示同一批序號，不會重新抽選。若需要重抽，請先由管理者確認後手動清空 `Winners` 工作表。
 

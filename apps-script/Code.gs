@@ -1,8 +1,11 @@
 const RESPONSE_SHEET_NAME = 'Responses';
 const WINNER_SHEET_NAME = 'Winners';
+const SETTING_SHEET_NAME = 'Settings';
+const WINNER_DRAW_OPEN_KEY = 'winner_draw_open';
 const SERIAL_PREFIX = 'APINK-KWAVE';
 const WINNER_COUNT = 10;
 const PUBLIC_POOL_LIMIT = 36;
+const SETTING_HEADERS = ['key', 'value', 'note'];
 const WINNER_HEADERS = [
   'drawn_at',
   'serial',
@@ -55,6 +58,7 @@ function setup() {
   ensureHeaders_(sheet);
   sheet.setFrozenRows(1);
   sheet.autoResizeColumns(1, RESPONSE_HEADERS.length);
+  ensureSettingsSheet_();
 }
 
 function doGet(e) {
@@ -69,8 +73,17 @@ function doGet(e) {
   }
 
   if (String(params.action || '').trim() === 'winners') {
+    if (!isWinnerDrawOpen_()) {
+      return publicResponse_({
+        ok: true,
+        drawOpen: false,
+        winners: []
+      }, params.callback);
+    }
+
     return publicResponse_({
       ok: true,
+      drawOpen: true,
       winners: getPublicWinners_()
     }, params.callback);
   }
@@ -144,10 +157,19 @@ function drawWinnersForRequest_() {
     lock.waitLock(10000);
     locked = true;
 
+    if (!isWinnerDrawOpen_()) {
+      return {
+        ok: false,
+        drawOpen: false,
+        error: '尚未開放中獎名單'
+      };
+    }
+
     const existingWinners = getPublicWinners_();
     if (existingWinners.length) {
       return {
         ok: true,
+        drawOpen: true,
         existing: true,
         winners: existingWinners
       };
@@ -211,6 +233,7 @@ function drawAndStoreWinners_() {
 
   return {
     ok: true,
+    drawOpen: true,
     existing: false,
     poolCount: eligibleRows.length,
     winners: getPublicWinners_()
@@ -302,6 +325,51 @@ function getResponsesSheet_() {
 function getWinnerSheet_(createIfMissing) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   return ss.getSheetByName(WINNER_SHEET_NAME) || (createIfMissing ? ss.insertSheet(WINNER_SHEET_NAME) : null);
+}
+
+function getSettingsSheet_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  return ss.getSheetByName(SETTING_SHEET_NAME) || ss.insertSheet(SETTING_SHEET_NAME);
+}
+
+function ensureSettingsSheet_() {
+  const sheet = getSettingsSheet_();
+  if (sheet.getLastRow() === 0) {
+    sheet.getRange(1, 1, 1, SETTING_HEADERS.length).setValues([SETTING_HEADERS]);
+    sheet.appendRow([
+      WINNER_DRAW_OPEN_KEY,
+      'FALSE',
+      'TRUE 時開放 winners.html 抽選與顯示中獎名單；FALSE 時顯示尚未開放中獎名單。'
+    ]);
+  } else {
+    const values = sheet.getDataRange().getValues();
+    const hasWinnerSwitch = values.slice(1).some((row) => String(row[0] || '').trim() === WINNER_DRAW_OPEN_KEY);
+    if (!hasWinnerSwitch) {
+      sheet.appendRow([
+        WINNER_DRAW_OPEN_KEY,
+        'FALSE',
+        'TRUE 時開放 winners.html 抽選與顯示中獎名單；FALSE 時顯示尚未開放中獎名單。'
+      ]);
+    }
+  }
+
+  const currentValues = sheet.getDataRange().getValues();
+  const switchRowIndex = currentValues.findIndex((row) => String(row[0] || '').trim() === WINNER_DRAW_OPEN_KEY);
+  if (switchRowIndex >= 1) {
+    sheet.getRange(switchRowIndex + 1, 2).insertCheckboxes();
+  }
+
+  sheet.setFrozenRows(1);
+  sheet.autoResizeColumns(1, SETTING_HEADERS.length);
+  return sheet;
+}
+
+function isWinnerDrawOpen_() {
+  const sheet = ensureSettingsSheet_();
+  const values = sheet.getDataRange().getValues();
+  const settingRow = values.slice(1).find((row) => String(row[0] || '').trim() === WINNER_DRAW_OPEN_KEY);
+  const rawValue = settingRow ? String(settingRow[1] || '').trim().toLowerCase() : '';
+  return ['true', 'yes', 'y', '1', 'on', 'open', 'opened', '開', '開啟', '開放', '是'].includes(rawValue);
 }
 
 function getRowValue_(headers, row, name) {

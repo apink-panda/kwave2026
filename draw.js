@@ -31,6 +31,14 @@ async function loadStoredWinners() {
   try {
     setWinnerStatus("連線中，讀取中獎結果。");
     const payload = await requestWinnerApi("winners");
+    if (payload.drawOpen === false) {
+      showWinnerClosedState();
+      return;
+    }
+    if (!payload.ok) {
+      throw new Error(payload.error || "暫時無法讀取中獎結果。");
+    }
+
     const winners = normalizeWinners(payload.winners);
 
     if (winners.length) {
@@ -39,7 +47,7 @@ async function loadStoredWinners() {
     }
 
     winnerButton.hidden = false;
-    setWinnerStatus("尚未產生中獎名單。");
+    setWinnerStatus("中獎名單已開放。");
   } catch (error) {
     setWinnerStatus(error.message || "暫時無法讀取中獎結果。");
   }
@@ -58,6 +66,11 @@ async function drawWinners() {
 
   try {
     const payload = await requestWinnerApi("draw-winners");
+    if (payload.drawOpen === false) {
+      showWinnerClosedState();
+      return;
+    }
+
     if (!payload.ok) {
       throw new Error(payload.error || "抽獎失敗，請稍後再試。");
     }
@@ -81,6 +94,17 @@ async function drawWinners() {
   } finally {
     winnerLoading = false;
   }
+}
+
+function showWinnerClosedState() {
+  winnerButton.hidden = true;
+  winnerButton.disabled = false;
+  winnerResults.hidden = true;
+  winnerPicks.innerHTML = "";
+  winnerReel.classList.remove("is-spinning", "is-hit");
+  winnerReelCode.textContent = "APINK-KWAVE";
+  setWinnerCount(0);
+  setWinnerStatus("尚未開放中獎名單");
 }
 
 async function animateWinnerDraw(winners) {
