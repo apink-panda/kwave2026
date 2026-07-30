@@ -340,7 +340,7 @@ function getPublicStats_() {
   const rows = values.slice(1).filter((row) => {
     const serial = cleanPublicText_(getRowValue_(headers, row, 'serial'), 80);
     const status = String(getRowValue_(headers, row, 'status') || '').trim().toLowerCase();
-    return serial && status === 'eligible';
+    return serial && (!status || status === 'eligible');
   });
 
   return {

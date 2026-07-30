@@ -44,6 +44,9 @@ async function loadStats() {
     if (!payload.ok) {
       throw new Error(payload.error || "暫時無法讀取統計排行。");
     }
+    if (!payload.stats || typeof payload.stats !== "object" || !Array.isArray(payload.stats.sections)) {
+      throw new Error("統計排行後端尚未更新，請重新部署 Apps Script。");
+    }
 
     renderStats(normalizeStats(payload.stats));
   } catch (error) {
