@@ -79,6 +79,14 @@ PROBE_PAYLOADS = {
         ("RED", "524544"),
         ("PINK", "50494e4b"),
     ],
+    "csr-serial-ping": [
+        ("NUL wake", "00"),
+        ("CRLF wake", "0d0a"),
+        ("AT CRLF", "41540d0a"),
+        ("ATI CRLF", "4154490d0a"),
+        ("PING CRLF", "50494e470d0a"),
+        ("VERSION CRLF", "56455253494f4e0d0a"),
+    ],
 }
 
 
