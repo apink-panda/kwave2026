@@ -68,6 +68,11 @@ def parse_args() -> argparse.Namespace:
         help="Allow writing even if the characteristic properties do not list write.",
     )
     parser.add_argument(
+        "--force-ota",
+        action="store_true",
+        help="Allow writing to CSR OTA firmware characteristics. Not recommended.",
+    )
+    parser.add_argument(
         "--read",
         action="store_true",
         help="Try reading readable characteristics after listing services.",
@@ -257,6 +262,7 @@ async def write_hex_to_char(
     hex_value: str,
     response: bool,
     force: bool,
+    force_ota: bool,
 ) -> None:
     char = find_characteristic(services, char_spec)
     if not char:
@@ -266,6 +272,11 @@ async def write_hex_to_char(
         raise RuntimeError(
             f"Characteristic {char.uuid} does not advertise write permissions. "
             "Use --force only if you are sure."
+        )
+    if char.service_uuid.lower() == CSR_OTA_SERVICE_UUID and not force_ota:
+        raise RuntimeError(
+            f"Refusing to write to CSR OTA firmware characteristic {char.uuid}. "
+            "Use --force-ota only if you intentionally want firmware-update traffic."
         )
 
     data = normalize_hex(hex_value)
@@ -315,7 +326,13 @@ async def monitor_notifications(client: BleakClient, services, specs, seconds: f
             print(f"  stop failed handle={char.handle} uuid={char.uuid}: {error}")
 
 
-async def interactive_loop(client: BleakClient, services, default_response: bool, force: bool):
+async def interactive_loop(
+    client: BleakClient,
+    services,
+    default_response: bool,
+    force: bool,
+    force_ota: bool,
+):
     print("\nInteractive write mode")
     print("Type an empty characteristic to exit.")
     print("Tip: use the handle number or UUID shown above.")
@@ -338,6 +355,7 @@ async def interactive_loop(client: BleakClient, services, default_response: bool
                 hex_value,
                 response=default_response,
                 force=force,
+                force_ota=force_ota,
             )
         except Exception as error:
             print(f"Write failed: {error}")
@@ -365,7 +383,11 @@ async def run() -> int:
         if args.read:
             await read_characteristics(client, services)
 
-        if args.write_hex:
+        if args.monitor > 0 and args.write_hex:
+            monitor_task = asyncio.create_task(
+                monitor_notifications(client, services, args.notify_char, args.monitor)
+            )
+            await asyncio.sleep(0.8)
             await write_hex_to_char(
                 client,
                 services,
@@ -373,13 +395,32 @@ async def run() -> int:
                 args.write_hex,
                 response=args.response,
                 force=args.force,
+                force_ota=args.force_ota,
             )
+            await monitor_task
+        else:
+            if args.write_hex:
+                await write_hex_to_char(
+                    client,
+                    services,
+                    args.char,
+                    args.write_hex,
+                    response=args.response,
+                    force=args.force,
+                    force_ota=args.force_ota,
+                )
 
-        if args.monitor > 0:
-            await monitor_notifications(client, services, args.notify_char, args.monitor)
+            if args.monitor > 0:
+                await monitor_notifications(client, services, args.notify_char, args.monitor)
 
         if args.interactive:
-            await interactive_loop(client, services, args.response, args.force)
+            await interactive_loop(
+                client,
+                services,
+                args.response,
+                args.force,
+                args.force_ota,
+            )
 
     print("\nDisconnected.")
     return 0
