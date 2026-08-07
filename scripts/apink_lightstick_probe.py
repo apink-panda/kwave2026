@@ -50,6 +50,24 @@ def parse_args() -> argparse.Namespace:
         help="BLE scan timeout in seconds. Default: 12",
     )
     parser.add_argument(
+        "--connect-timeout",
+        type=float,
+        default=20.0,
+        help="BLE connection timeout in seconds. Default: 20",
+    )
+    parser.add_argument(
+        "--connect-retries",
+        type=int,
+        default=3,
+        help="Connection attempts before giving up. Default: 3",
+    )
+    parser.add_argument(
+        "--retry-delay",
+        type=float,
+        default=2.0,
+        help="Delay between connection attempts in seconds. Default: 2",
+    )
+    parser.add_argument(
         "--char",
         help="Characteristic UUID or handle to write to. Example: 0000xxxx-...",
     )
@@ -177,6 +195,36 @@ async def get_services(client: BleakClient):
         if get_services_method:
             return await get_services_method()
         raise
+
+
+async def connect_with_retries(target, timeout: float, retries: int, retry_delay: float):
+    attempts = max(1, retries)
+    last_error = None
+
+    for attempt in range(1, attempts + 1):
+        client = BleakClient(target, timeout=timeout)
+        print(f"\nConnecting... attempt {attempt}/{attempts}")
+        try:
+            await asyncio.wait_for(client.connect(), timeout=timeout + 5)
+            print(f"Connected: {client.is_connected}")
+            return client
+        except Exception as error:
+            last_error = error
+            print(f"Connect failed: {error.__class__.__name__}: {error}")
+            try:
+                if client.is_connected:
+                    await client.disconnect()
+            except Exception:
+                pass
+
+            if attempt < attempts:
+                print(f"Waiting {retry_delay:g}s before retrying...")
+                await asyncio.sleep(retry_delay)
+
+    raise RuntimeError(
+        "Could not connect to the light stick. Try turning the light stick off/on, "
+        "waiting 10 seconds, closing other Bluetooth apps, or toggling macOS Bluetooth."
+    ) from last_error
 
 
 def print_services(services):
@@ -418,9 +466,14 @@ async def run() -> int:
         if not target:
             return 1
 
-    print("\nConnecting...")
-    async with BleakClient(target) as client:
-        print(f"Connected: {client.is_connected}")
+    client = await connect_with_retries(
+        target,
+        timeout=args.connect_timeout,
+        retries=args.connect_retries,
+        retry_delay=args.retry_delay,
+    )
+
+    try:
         services = await get_services(client)
         print_services(services)
 
@@ -490,7 +543,11 @@ async def run() -> int:
                 args.force_ota,
             )
 
-    print("\nDisconnected.")
+    finally:
+        if client.is_connected:
+            await client.disconnect()
+        print("\nDisconnected.")
+
     return 0
 
 
@@ -500,6 +557,9 @@ def main() -> None:
     except KeyboardInterrupt:
         print("\nCancelled.")
         raise SystemExit(130)
+    except Exception as error:
+        print(f"\nError: {error}", file=sys.stderr)
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":
