@@ -197,9 +197,24 @@ async def get_services(client: BleakClient):
         raise
 
 
+def is_pairing_cache_error(error: Exception) -> bool:
+    message = str(error).lower()
+    return "peer removed pairing information" in message or "cberrordomain code=14" in message
+
+
+def pairing_cache_help() -> str:
+    return (
+        "macOS still has stale Bluetooth pairing/bond data for this light stick, "
+        "but the light stick has removed its side of the pairing. Open System Settings > "
+        "Bluetooth, forget/remove APINK LIGHT STICK if it appears, toggle Bluetooth off/on, "
+        "turn the light stick off for 10 seconds, then put it back into Bluetooth mode."
+    )
+
+
 async def connect_with_retries(target, timeout: float, retries: int, retry_delay: float):
     attempts = max(1, retries)
     last_error = None
+    saw_pairing_cache_error = False
 
     for attempt in range(1, attempts + 1):
         client = BleakClient(target, timeout=timeout)
@@ -211,6 +226,9 @@ async def connect_with_retries(target, timeout: float, retries: int, retry_delay
         except Exception as error:
             last_error = error
             print(f"Connect failed: {error.__class__.__name__}: {error}")
+            if is_pairing_cache_error(error):
+                saw_pairing_cache_error = True
+                print(f"Pairing cache hint: {pairing_cache_help()}")
             try:
                 if client.is_connected:
                     await client.disconnect()
@@ -220,6 +238,9 @@ async def connect_with_retries(target, timeout: float, retries: int, retry_delay
             if attempt < attempts:
                 print(f"Waiting {retry_delay:g}s before retrying...")
                 await asyncio.sleep(retry_delay)
+
+    if saw_pairing_cache_error:
+        raise RuntimeError(pairing_cache_help()) from last_error
 
     raise RuntimeError(
         "Could not connect to the light stick. Try turning the light stick off/on, "
