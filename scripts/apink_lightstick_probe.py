@@ -28,6 +28,58 @@ DEFAULT_NAME = "APINK"
 CSR_OTA_SERVICE_UUID = "00001016-d102-11e1-9b23-00025b00a5a5"
 LIKELY_LIGHT_WRITE_UUID = "000092a4-0000-1000-8000-00805f9b34fb"
 LIKELY_LIGHT_NOTIFY_UUID = "000092a5-0000-1000-8000-00805f9b34fb"
+PROBE_PAYLOADS = {
+    "byte-modes": [
+        ("mode 00", "00"),
+        ("mode 01", "01"),
+        ("mode 02", "02"),
+        ("mode 03", "03"),
+        ("mode 04", "04"),
+        ("mode 05", "05"),
+        ("mode 06", "06"),
+        ("mode 07", "07"),
+        ("mode 08", "08"),
+    ],
+    "rgb-basic": [
+        ("rgb red", "ff0000"),
+        ("rgb green", "00ff00"),
+        ("rgb blue", "0000ff"),
+        ("rgb pink", "ff66cc"),
+        ("rgb white", "ffffff"),
+        ("rgb off", "000000"),
+        ("01 rgb red", "01ff0000"),
+        ("01 rgb green", "0100ff00"),
+        ("01 rgb blue", "010000ff"),
+        ("01 rgb pink", "01ff66cc"),
+        ("02 rgb red", "02ff0000"),
+        ("02 rgb pink", "02ff66cc"),
+    ],
+    "magic-blue": [
+        ("magic on", "cc2333"),
+        ("magic red", "56ff000000f0aa"),
+        ("magic green", "5600ff0000f0aa"),
+        ("magic blue", "560000ff00f0aa"),
+        ("magic pink", "56ff66cc00f0aa"),
+        ("magic white", "56ffffff00f0aa"),
+        ("magic off", "cc2433"),
+    ],
+    "framed-rgb": [
+        ("7e rgb red", "7e000503ff000000ef"),
+        ("7e rgb green", "7e00050300ff0000ef"),
+        ("7e rgb blue", "7e0005030000ff00ef"),
+        ("7e rgb pink", "7e000503ff66cc00ef"),
+        ("7e rgb white", "7e000503ffffff00ef"),
+        ("7e off", "7e00040400000000ef"),
+    ],
+    "ascii": [
+        ("AT", "4154"),
+        ("AT CRLF", "41540d0a"),
+        ("ON", "4f4e"),
+        ("OFF", "4f4646"),
+        ("RED", "524544"),
+        ("PINK", "50494e4b"),
+    ],
+}
 
 
 def parse_args() -> argparse.Namespace:
@@ -80,10 +132,27 @@ def parse_args() -> argparse.Namespace:
         help="Comma-separated hex payloads to write in order, e.g. '00,01,02'. Requires --char.",
     )
     parser.add_argument(
+        "--probe",
+        action="append",
+        choices=sorted(PROBE_PAYLOADS),
+        default=[],
+        help="Run a built-in probe payload set. Can be repeated. Requires --char.",
+    )
+    parser.add_argument(
+        "--list-probes",
+        action="store_true",
+        help="List built-in probe payload sets and exit.",
+    )
+    parser.add_argument(
         "--sequence-delay",
         type=float,
         default=2.0,
         help="Delay between --sequence writes in seconds. Default: 2",
+    )
+    parser.add_argument(
+        "--step",
+        action="store_true",
+        help="Prompt between sequence/probe writes so you can observe the light stick.",
     )
     parser.add_argument(
         "--response",
@@ -137,6 +206,38 @@ def normalize_hex(value: str) -> bytes:
 
 def bytes_to_hex(value: bytes) -> str:
     return value.hex(" ")
+
+
+def print_probe_sets() -> None:
+    print("Built-in probe payload sets:")
+    for name, payloads in PROBE_PAYLOADS.items():
+        print(f"\n{name}")
+        for label, payload in payloads:
+            print(f"  {label}: {payload}")
+
+
+def sequence_payloads(sequence: str):
+    return [
+        (f"sequence {index}", payload)
+        for index, payload in enumerate((item.strip() for item in sequence.split(",")), start=1)
+        if payload
+    ]
+
+
+def build_write_payloads(args: argparse.Namespace):
+    payloads = []
+
+    if args.write_hex:
+        payloads.append(("single write", args.write_hex))
+    if args.sequence:
+        payloads.extend(sequence_payloads(args.sequence))
+    for probe_name in args.probe:
+        payloads.extend(
+            (f"{probe_name}: {label}", payload)
+            for label, payload in PROBE_PAYLOADS[probe_name]
+        )
+
+    return payloads
 
 
 def is_writable(properties: Iterable[str]) -> bool:
@@ -371,19 +472,19 @@ async def write_sequence_to_char(
     client: BleakClient,
     services,
     char_spec: str,
-    sequence: str,
+    payloads,
     delay: float,
     response: bool,
     force: bool,
     force_ota: bool,
+    step: bool,
 ) -> None:
-    payloads = [item.strip() for item in sequence.split(",") if item.strip()]
     if not payloads:
-        raise RuntimeError("--sequence did not contain any hex payloads")
+        raise RuntimeError("No payloads to write")
 
     print(f"\nWriting sequence of {len(payloads)} payload(s) with {delay:g}s delay.")
-    for index, payload in enumerate(payloads, start=1):
-        print(f"\n[{index}/{len(payloads)}]")
+    for index, (label, payload) in enumerate(payloads, start=1):
+        print(f"\n[{index}/{len(payloads)}] {label}: {payload}")
         await write_hex_to_char(
             client,
             services,
@@ -394,7 +495,10 @@ async def write_sequence_to_char(
             force_ota=force_ota,
         )
         if index < len(payloads):
-            await asyncio.sleep(delay)
+            if step:
+                await asyncio.to_thread(input, "Press Enter for next payload...")
+            else:
+                await asyncio.sleep(delay)
 
 
 async def monitor_notifications(client: BleakClient, services, specs, seconds: float):
@@ -473,12 +577,19 @@ async def interactive_loop(
 async def run() -> int:
     args = parse_args()
 
-    has_write = bool(args.write_hex or args.sequence)
-    if bool(args.char) != has_write:
-        print("--char must be used with --write-hex or --sequence.", file=sys.stderr)
+    if args.list_probes:
+        print_probe_sets()
+        return 0
+
+    write_modes = [bool(args.write_hex), bool(args.sequence), bool(args.probe)]
+    if sum(write_modes) > 1:
+        print("Use only one of --write-hex, --sequence, or --probe.", file=sys.stderr)
         return 2
-    if args.write_hex and args.sequence:
-        print("Use either --write-hex or --sequence, not both.", file=sys.stderr)
+
+    write_payloads = build_write_payloads(args)
+    has_write = bool(write_payloads)
+    if bool(args.char) != has_write:
+        print("--char must be used with --write-hex, --sequence, or --probe.", file=sys.stderr)
         return 2
 
     target: Optional[object] = args.address
@@ -506,23 +617,25 @@ async def run() -> int:
                 monitor_notifications(client, services, args.notify_char, args.monitor)
             )
             await asyncio.sleep(0.8)
-            if args.sequence:
+            if len(write_payloads) > 1:
                 await write_sequence_to_char(
                     client,
                     services,
                     args.char,
-                    args.sequence,
+                    write_payloads,
                     args.sequence_delay,
                     response=args.response,
                     force=args.force,
                     force_ota=args.force_ota,
+                    step=args.step,
                 )
             else:
+                _, payload = write_payloads[0]
                 await write_hex_to_char(
                     client,
                     services,
                     args.char,
-                    args.write_hex,
+                    payload,
                     response=args.response,
                     force=args.force,
                     force_ota=args.force_ota,
@@ -530,23 +643,25 @@ async def run() -> int:
             await monitor_task
         else:
             if has_write:
-                if args.sequence:
+                if len(write_payloads) > 1:
                     await write_sequence_to_char(
                         client,
                         services,
                         args.char,
-                        args.sequence,
+                        write_payloads,
                         args.sequence_delay,
                         response=args.response,
                         force=args.force,
                         force_ota=args.force_ota,
+                        step=args.step,
                     )
                 else:
+                    _, payload = write_payloads[0]
                     await write_hex_to_char(
                         client,
                         services,
                         args.char,
-                        args.write_hex,
+                        payload,
                         response=args.response,
                         force=args.force,
                         force_ota=args.force_ota,
