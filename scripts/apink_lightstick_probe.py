@@ -58,6 +58,16 @@ def parse_args() -> argparse.Namespace:
         help="Hex bytes to write, e.g. '01 ff 66 cc'. Requires --char.",
     )
     parser.add_argument(
+        "--sequence",
+        help="Comma-separated hex payloads to write in order, e.g. '00,01,02'. Requires --char.",
+    )
+    parser.add_argument(
+        "--sequence-delay",
+        type=float,
+        default=2.0,
+        help="Delay between --sequence writes in seconds. Default: 2",
+    )
+    parser.add_argument(
         "--response",
         action="store_true",
         help="Use write-with-response. Default uses write-without-response.",
@@ -288,6 +298,36 @@ async def write_hex_to_char(
     print("Write completed.")
 
 
+async def write_sequence_to_char(
+    client: BleakClient,
+    services,
+    char_spec: str,
+    sequence: str,
+    delay: float,
+    response: bool,
+    force: bool,
+    force_ota: bool,
+) -> None:
+    payloads = [item.strip() for item in sequence.split(",") if item.strip()]
+    if not payloads:
+        raise RuntimeError("--sequence did not contain any hex payloads")
+
+    print(f"\nWriting sequence of {len(payloads)} payload(s) with {delay:g}s delay.")
+    for index, payload in enumerate(payloads, start=1):
+        print(f"\n[{index}/{len(payloads)}]")
+        await write_hex_to_char(
+            client,
+            services,
+            char_spec,
+            payload,
+            response=response,
+            force=force,
+            force_ota=force_ota,
+        )
+        if index < len(payloads):
+            await asyncio.sleep(delay)
+
+
 async def monitor_notifications(client: BleakClient, services, specs, seconds: float):
     notify_chars = get_notify_candidates(services, specs)
     if not notify_chars:
@@ -364,8 +404,12 @@ async def interactive_loop(
 async def run() -> int:
     args = parse_args()
 
-    if bool(args.char) != bool(args.write_hex):
-        print("--char and --write-hex must be used together.", file=sys.stderr)
+    has_write = bool(args.write_hex or args.sequence)
+    if bool(args.char) != has_write:
+        print("--char must be used with --write-hex or --sequence.", file=sys.stderr)
+        return 2
+    if args.write_hex and args.sequence:
+        print("Use either --write-hex or --sequence, not both.", file=sys.stderr)
         return 2
 
     target: Optional[object] = args.address
@@ -383,23 +427,23 @@ async def run() -> int:
         if args.read:
             await read_characteristics(client, services)
 
-        if args.monitor > 0 and args.write_hex:
+        if args.monitor > 0 and has_write:
             monitor_task = asyncio.create_task(
                 monitor_notifications(client, services, args.notify_char, args.monitor)
             )
             await asyncio.sleep(0.8)
-            await write_hex_to_char(
-                client,
-                services,
-                args.char,
-                args.write_hex,
-                response=args.response,
-                force=args.force,
-                force_ota=args.force_ota,
-            )
-            await monitor_task
-        else:
-            if args.write_hex:
+            if args.sequence:
+                await write_sequence_to_char(
+                    client,
+                    services,
+                    args.char,
+                    args.sequence,
+                    args.sequence_delay,
+                    response=args.response,
+                    force=args.force,
+                    force_ota=args.force_ota,
+                )
+            else:
                 await write_hex_to_char(
                     client,
                     services,
@@ -409,6 +453,30 @@ async def run() -> int:
                     force=args.force,
                     force_ota=args.force_ota,
                 )
+            await monitor_task
+        else:
+            if has_write:
+                if args.sequence:
+                    await write_sequence_to_char(
+                        client,
+                        services,
+                        args.char,
+                        args.sequence,
+                        args.sequence_delay,
+                        response=args.response,
+                        force=args.force,
+                        force_ota=args.force_ota,
+                    )
+                else:
+                    await write_hex_to_char(
+                        client,
+                        services,
+                        args.char,
+                        args.write_hex,
+                        response=args.response,
+                        force=args.force,
+                        force_ota=args.force_ota,
+                    )
 
             if args.monitor > 0:
                 await monitor_notifications(client, services, args.notify_char, args.monitor)
