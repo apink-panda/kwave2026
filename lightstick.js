@@ -15,9 +15,12 @@ const CSR_SERIAL_SERVICE = "00005500-d102-11e1-9b23-00025b00a5a5";
 const BATTERY_SERVICE = "battery_service";
 const BATTERY_LEVEL = "battery_level";
 const STORAGE_KEY = "kwave-lightstick-battery";
+const CONNECT_ATTEMPTS = 4;
+const RETRY_DELAY_MS = 1600;
 
 let currentDevice = null;
 let currentCharacteristic = null;
+let deviceChosen = false;
 
 initLightstickPage();
 
@@ -47,16 +50,15 @@ function showUnsupported() {
 
 async function connectLightstick() {
   try {
+    deviceChosen = false;
     setBatteryStatus("請在瀏覽器彈出的視窗中選擇手燈。", "busy");
 
     const device = await navigator.bluetooth.requestDevice(buildRequestOptions());
     currentDevice = device;
-    device.addEventListener("gattserverdisconnected", handleDisconnected);
+    deviceChosen = true;
 
-    setBatteryStatus("連線中，讀取電量。", "busy");
-    const server = await device.gatt.connect();
-    const service = await server.getPrimaryService(BATTERY_SERVICE);
-    currentCharacteristic = await service.getCharacteristic(BATTERY_LEVEL);
+    currentCharacteristic = await openBatteryCharacteristic(device);
+    device.addEventListener("gattserverdisconnected", handleDisconnected);
 
     const value = await currentCharacteristic.readValue();
     renderBattery(value.getUint8(0), device.name);
@@ -67,6 +69,38 @@ async function connectLightstick() {
   } catch (error) {
     handleConnectError(error);
   }
+}
+
+// This light stick regularly drops the first GATT connection, so connecting is
+// retried the way the Python probe script does. The disconnect listener is only
+// attached afterwards, otherwise each failed attempt would reset the UI.
+async function openBatteryCharacteristic(device) {
+  let lastError = null;
+
+  for (let attempt = 1; attempt <= CONNECT_ATTEMPTS; attempt += 1) {
+    try {
+      setBatteryStatus(`連線中，讀取電量（第 ${attempt}/${CONNECT_ATTEMPTS} 次嘗試）。`, "busy");
+      const server = await device.gatt.connect();
+      const service = await server.getPrimaryService(BATTERY_SERVICE);
+      return await service.getCharacteristic(BATTERY_LEVEL);
+    } catch (error) {
+      lastError = error;
+
+      if (device.gatt.connected) {
+        device.gatt.disconnect();
+      }
+
+      if (attempt < CONNECT_ATTEMPTS) {
+        await delay(RETRY_DELAY_MS);
+      }
+    }
+  }
+
+  throw lastError;
+}
+
+function delay(milliseconds) {
+  return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
 }
 
 function buildRequestOptions() {
@@ -132,7 +166,9 @@ function handleConnectError(error) {
   currentCharacteristic = null;
   setControlsConnected(false);
 
-  if (error && error.name === "NotFoundError") {
+  // requestDevice and getPrimaryService both throw NotFoundError, so the two
+  // are told apart by whether a device was actually picked.
+  if (error && error.name === "NotFoundError" && !deviceChosen) {
     setBatteryStatus("沒有選擇裝置。請確認手燈已開機並進入藍牙模式後再試一次。", "");
     return;
   }
@@ -145,10 +181,13 @@ function describeError(error) {
     return "未知錯誤";
   }
   if (error.name === "SecurityError") {
-    return "瀏覽器拒絕存取，請確認網頁是 HTTPS。";
+    return "瀏覽器拒絕存取，請確認網址開頭是 https。";
+  }
+  if (error.name === "NotFoundError") {
+    return "連上了，但這支裝置沒有提供電池服務。";
   }
   if (error.name === "NetworkError") {
-    return "藍牙連線中斷，請把手燈靠近一點再試。";
+    return "連線被手燈中斷。請確認沒有其他程式（例如 Python 探測腳本）或系統藍牙設定正連著它，把手燈關掉十秒再重新進入藍牙模式。";
   }
   return error.message || error.name || "未知錯誤";
 }
