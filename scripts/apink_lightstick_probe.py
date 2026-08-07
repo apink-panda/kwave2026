@@ -11,6 +11,8 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import collections
+import json
 import re
 import sys
 import time
@@ -152,10 +154,51 @@ def parse_args() -> argparse.Namespace:
         help="List built-in probe payload sets and exit.",
     )
     parser.add_argument(
+        "--length-sweep",
+        type=int,
+        default=0,
+        help=(
+            "Write N bytes of --length-fill for N = 1..LENGTH_SWEEP. Rejected lengths "
+            "reveal the payload size the firmware expects. Try 20 first."
+        ),
+    )
+    parser.add_argument(
+        "--length-fill",
+        default="00",
+        help="Single byte repeated by --length-sweep. Default: 00",
+    )
+    parser.add_argument(
+        "--header-sweep",
+        help="Sweep a leading byte over an inclusive hex range, e.g. '00-ff'.",
+    )
+    parser.add_argument(
+        "--header-body",
+        default="",
+        help="Hex body appended after each --header-sweep byte. Default: empty",
+    )
+    parser.add_argument(
+        "--sweep-writable",
+        action="store_true",
+        help="Send payloads to every writable characteristic instead of a single --char.",
+    )
+    parser.add_argument(
+        "--reply-wait",
+        type=float,
+        default=1.2,
+        help=(
+            "Seconds to wait for a notification reply after each write, so replies can be "
+            "matched to the payload that caused them. 0 disables. Default: 1.2"
+        ),
+    )
+    parser.add_argument(
+        "--log",
+        help="Append a JSONL record of every write, error, and reply to this file.",
+    )
+    parser.add_argument(
         "--sequence-delay",
         type=float,
         default=2.0,
-        help="Delay between --sequence writes in seconds. Default: 2",
+        help="Extra delay after each write in seconds. Use 0 for long sweeps. Default: 2",
     )
     parser.add_argument(
         "--step",
@@ -165,7 +208,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--response",
         action="store_true",
-        help="Use write-with-response. Default uses write-without-response.",
+        help=(
+            "Force write-with-response. By default the write type is chosen per "
+            "characteristic from its advertised properties."
+        ),
     )
     parser.add_argument(
         "--force",
@@ -232,6 +278,33 @@ def sequence_payloads(sequence: str):
     ]
 
 
+def length_sweep_payloads(max_length: int, fill: str):
+    fill_byte = normalize_hex(fill)
+    if len(fill_byte) != 1:
+        raise ValueError("--length-fill must be exactly one byte")
+    return [
+        (f"length {length}", fill_byte.hex() * length)
+        for length in range(1, max_length + 1)
+    ]
+
+
+def header_sweep_payloads(spec: str, body: str):
+    match = re.fullmatch(r"\s*([0-9a-fA-F]{1,2})\s*-\s*([0-9a-fA-F]{1,2})\s*", spec)
+    if not match:
+        raise ValueError("--header-sweep must look like '00-ff'")
+
+    start = int(match.group(1), 16)
+    end = int(match.group(2), 16)
+    if end < start:
+        raise ValueError("--header-sweep end must be greater than or equal to start")
+
+    body_hex = normalize_hex(body).hex() if body.strip() else ""
+    return [
+        (f"header {value:02x}", f"{value:02x}{body_hex}")
+        for value in range(start, end + 1)
+    ]
+
+
 def build_write_payloads(args: argparse.Namespace):
     payloads = []
 
@@ -244,8 +317,27 @@ def build_write_payloads(args: argparse.Namespace):
             (f"{probe_name}: {label}", payload)
             for label, payload in PROBE_PAYLOADS[probe_name]
         )
+    if args.length_sweep > 0:
+        payloads.extend(length_sweep_payloads(args.length_sweep, args.length_fill))
+    if args.header_sweep:
+        payloads.extend(header_sweep_payloads(args.header_sweep, args.header_body))
 
     return payloads
+
+
+def write_with_response(char, force_response: bool) -> bool:
+    """Pick the write type the characteristic actually supports.
+
+    CoreBluetooth silently drops a write-without-response sent to a
+    characteristic that only advertises plain write, so the type has to follow
+    the properties rather than a single global flag.
+    """
+    if force_response:
+        return True
+    props = set(char.properties)
+    if "write-without-response" in props:
+        return False
+    return True
 
 
 def is_writable(properties: Iterable[str]) -> bool:
@@ -265,31 +357,73 @@ def device_name(device) -> str:
     return device.name or "(no name)"
 
 
+def print_advertisement(adv) -> None:
+    """Dump raw advertising payload.
+
+    Manufacturer data carries a SIG-assigned company ID, which is often the
+    only pointer to the OEM behind an unbranded device.
+    """
+    if adv is None:
+        print("    (no advertisement data captured)")
+        return
+
+    if adv.local_name:
+        print(f"    local_name: {adv.local_name}")
+    print(f"    rssi: {adv.rssi}")
+    if adv.tx_power is not None:
+        print(f"    tx_power: {adv.tx_power}")
+    for uuid in adv.service_uuids or []:
+        print(f"    service_uuid: {uuid}")
+    for uuid, value in (adv.service_data or {}).items():
+        print(f"    service_data: {uuid} => {bytes_to_hex(bytes(value))}")
+    if adv.manufacturer_data:
+        for company_id, value in adv.manufacturer_data.items():
+            print(
+                f"    manufacturer_data: company_id=0x{company_id:04x} ({company_id}) "
+                f"=> {bytes_to_hex(bytes(value))}"
+            )
+    else:
+        print("    manufacturer_data: none")
+
+
+async def discover_with_adv(timeout: float):
+    """Return [(device, adv_or_None)], tolerating older bleak versions."""
+    try:
+        found = await BleakScanner.discover(timeout=timeout, return_adv=True)
+        return [(device, adv) for device, adv in found.values()]
+    except TypeError:
+        devices = await BleakScanner.discover(timeout=timeout)
+        return [(device, None) for device in devices]
+
+
 async def scan_for_device(name_keyword: str, timeout: float):
     print(f"Scanning for BLE devices for {timeout:g}s...")
-    devices = await BleakScanner.discover(timeout=timeout)
+    entries = await discover_with_adv(timeout)
 
-    if not devices:
+    if not entries:
         print("No BLE devices found.")
         return None
 
     print("\nDiscovered devices:")
     matches = []
     keyword = name_keyword.upper()
-    for index, device in enumerate(devices, start=1):
+    for index, (device, adv) in enumerate(entries, start=1):
         name = device_name(device)
-        marker = ""
-        if keyword in name.upper():
-            marker = "  <== match"
-            matches.append(device)
+        matched = keyword in name.upper()
+        marker = "  <== match" if matched else ""
         print(f"  {index:02d}. {name} | {device.address}{marker}")
+        if matched:
+            matches.append((device, adv))
+            print_advertisement(adv)
 
     if not matches:
         print(f"\nNo device name matched keyword: {name_keyword!r}")
         return None
 
-    exact = [device for device in matches if device_name(device).upper() == "APINK LIGHT STICK"]
-    target = exact[0] if exact else matches[0]
+    exact = [
+        entry for entry in matches if device_name(entry[0]).upper() == "APINK LIGHT STICK"
+    ]
+    target, _ = exact[0] if exact else matches[0]
     print(f"\nSelected: {device_name(target)} | {target.address}")
     return target
 
@@ -443,15 +577,52 @@ async def read_characteristics(client: BleakClient, services):
         print("  No readable characteristics were advertised.")
 
 
-async def write_hex_to_char(
-    client: BleakClient,
-    services,
-    char_spec: str,
-    hex_value: str,
-    response: bool,
-    force: bool,
-    force_ota: bool,
-) -> None:
+class NotifyCollector:
+    """Buffer notifications so each one can be attributed to a single write."""
+
+    def __init__(self) -> None:
+        self.events = []
+        self._cursor = 0
+        self._subscribed = []
+
+    def _make_handler(self, char):
+        def handler(sender, data):
+            self.events.append(
+                {
+                    "time": time.time(),
+                    "handle": char.handle,
+                    "uuid": char.uuid,
+                    "data": bytes(data),
+                }
+            )
+
+        return handler
+
+    async def start(self, client: BleakClient, chars) -> bool:
+        for char in chars:
+            try:
+                await client.start_notify(char, self._make_handler(char))
+                self._subscribed.append(char)
+                print(f"  notify on handle={char.handle} uuid={char.uuid}")
+            except Exception as error:
+                print(f"  notify unavailable handle={char.handle} uuid={char.uuid}: {error}")
+        return bool(self._subscribed)
+
+    def drain(self):
+        events = self.events[self._cursor :]
+        self._cursor = len(self.events)
+        return events
+
+    async def stop(self, client: BleakClient) -> None:
+        for char in self._subscribed:
+            try:
+                await client.stop_notify(char)
+            except Exception as error:
+                print(f"  stop notify failed handle={char.handle}: {error}")
+        self._subscribed = []
+
+
+def resolve_write_char(services, char_spec: str, force: bool, force_ota: bool):
     char = find_characteristic(services, char_spec)
     if not char:
         raise RuntimeError(f"Characteristic not found: {char_spec}")
@@ -466,47 +637,132 @@ async def write_hex_to_char(
             f"Refusing to write to CSR OTA firmware characteristic {char.uuid}. "
             "Use --force-ota only if you intentionally want firmware-update traffic."
         )
-
-    data = normalize_hex(hex_value)
-    print(
-        f"\nWriting to handle={char.handle} uuid={char.uuid}: "
-        f"{bytes_to_hex(data)} response={response}"
-    )
-    await client.write_gatt_char(char, data, response=response)
-    print("Write completed.")
+    return char
 
 
-async def write_sequence_to_char(
+def resolve_write_targets(services, args: argparse.Namespace):
+    if not args.sweep_writable:
+        return [resolve_write_char(services, args.char, args.force, args.force_ota)]
+
+    targets = []
+    for service in services:
+        if service.uuid.lower() == CSR_OTA_SERVICE_UUID and not args.force_ota:
+            continue
+        for char in service.characteristics:
+            if is_writable(char.properties):
+                targets.append(char)
+
+    if not targets:
+        raise RuntimeError("No writable characteristics available to sweep.")
+    return targets
+
+
+def log_write_record(path: Optional[str], char, label: str, data: bytes, error, replies) -> None:
+    if not path:
+        return
+
+    record = {
+        "time": time.time(),
+        "handle": char.handle,
+        "uuid": char.uuid,
+        "label": label,
+        "payload": data.hex(),
+        "error": error,
+        "replies": [
+            {"handle": reply["handle"], "uuid": reply["uuid"], "data": reply["data"].hex()}
+            for reply in replies
+        ],
+    }
+    with open(path, "a", encoding="utf-8") as stream:
+        stream.write(json.dumps(record) + "\n")
+
+
+async def write_hex_to_char(
     client: BleakClient,
     services,
     char_spec: str,
-    payloads,
-    delay: float,
+    hex_value: str,
     response: bool,
     force: bool,
     force_ota: bool,
-    step: bool,
 ) -> None:
-    if not payloads:
-        raise RuntimeError("No payloads to write")
+    char = resolve_write_char(services, char_spec, force, force_ota)
+    data = normalize_hex(hex_value)
+    use_response = write_with_response(char, response)
+    print(
+        f"\nWriting to handle={char.handle} uuid={char.uuid}: "
+        f"{bytes_to_hex(data)} response={use_response}"
+    )
+    await client.write_gatt_char(char, data, response=use_response)
+    print("Write completed.")
 
-    print(f"\nWriting sequence of {len(payloads)} payload(s) with {delay:g}s delay.")
+
+async def run_payloads(
+    client: BleakClient,
+    char,
+    payloads,
+    args: argparse.Namespace,
+    collector: Optional[NotifyCollector],
+) -> None:
+    use_response = write_with_response(char, args.response)
+    print(
+        f"\n=== Target handle={char.handle} uuid={char.uuid} "
+        f"props={','.join(char.properties)} response={use_response} ==="
+    )
+
+    accepted = []
+    rejected = []
+    answered = []
+
     for index, (label, payload) in enumerate(payloads, start=1):
-        print(f"\n[{index}/{len(payloads)}] {label}: {payload}")
-        await write_hex_to_char(
-            client,
-            services,
-            char_spec,
-            payload,
-            response=response,
-            force=force,
-            force_ota=force_ota,
-        )
+        data = normalize_hex(payload)
+        print(f"[{index}/{len(payloads)}] {label}: {bytes_to_hex(data)}")
+
+        if collector:
+            collector.drain()
+
+        error_text = None
+        try:
+            await client.write_gatt_char(char, data, response=use_response)
+        except Exception as error:
+            error_text = f"{error.__class__.__name__}: {error}"
+
+        replies = []
+        if collector and args.reply_wait > 0:
+            await asyncio.sleep(args.reply_wait)
+            replies = collector.drain()
+
+        if error_text:
+            rejected.append((label, error_text))
+            print(f"  REJECTED {error_text}")
+        else:
+            accepted.append(label)
+            print("  accepted")
+
+        for reply in replies:
+            answered.append((label, reply))
+            print(f"  <== handle={reply['handle']} {bytes_to_hex(reply['data'])}")
+
+        log_write_record(args.log, char, label, data, error_text, replies)
+
         if index < len(payloads):
-            if step:
-                await asyncio.to_thread(input, "Press Enter for next payload...")
-            else:
-                await asyncio.sleep(delay)
+            if args.step:
+                await asyncio.to_thread(input, "  Press Enter for next payload...")
+            elif args.sequence_delay > 0:
+                await asyncio.sleep(args.sequence_delay)
+
+    print(f"\n--- handle={char.handle} summary ---")
+    print(f"  accepted: {len(accepted)}  rejected: {len(rejected)}  replies: {len(answered)}")
+    if rejected:
+        reasons = collections.Counter(reason for _, reason in rejected)
+        for reason, count in reasons.most_common():
+            print(f"  {count}x rejected: {reason}")
+    if answered:
+        print("  payloads that produced a reply:")
+        for label, reply in answered:
+            print(f"    {label} => handle={reply['handle']} {bytes_to_hex(reply['data'])}")
+    elif accepted:
+        print("  No replies. Accepted writes were absorbed silently.")
 
 
 async def monitor_notifications(client: BleakClient, services, specs, seconds: float):
@@ -589,15 +845,39 @@ async def run() -> int:
         print_probe_sets()
         return 0
 
-    write_modes = [bool(args.write_hex), bool(args.sequence), bool(args.probe)]
+    write_modes = [
+        bool(args.write_hex),
+        bool(args.sequence),
+        bool(args.probe),
+        args.length_sweep > 0,
+        bool(args.header_sweep),
+    ]
     if sum(write_modes) > 1:
-        print("Use only one of --write-hex, --sequence, or --probe.", file=sys.stderr)
+        print(
+            "Use only one of --write-hex, --sequence, --probe, --length-sweep, "
+            "or --header-sweep.",
+            file=sys.stderr,
+        )
         return 2
 
-    write_payloads = build_write_payloads(args)
+    if args.char and args.sweep_writable:
+        print("Use either --char or --sweep-writable, not both.", file=sys.stderr)
+        return 2
+
+    try:
+        write_payloads = build_write_payloads(args)
+    except ValueError as error:
+        print(f"Invalid payload option: {error}", file=sys.stderr)
+        return 2
+
     has_write = bool(write_payloads)
-    if bool(args.char) != has_write:
-        print("--char must be used with --write-hex, --sequence, or --probe.", file=sys.stderr)
+    has_target = bool(args.char) or args.sweep_writable
+    if has_target != has_write:
+        print(
+            "A write target (--char or --sweep-writable) must be paired with a payload "
+            "source (--write-hex, --sequence, --probe, --length-sweep, --header-sweep).",
+            file=sys.stderr,
+        )
         return 2
 
     target: Optional[object] = args.address
@@ -620,63 +900,34 @@ async def run() -> int:
         if args.read:
             await read_characteristics(client, services)
 
-        if args.monitor > 0 and has_write:
-            monitor_task = asyncio.create_task(
-                monitor_notifications(client, services, args.notify_char, args.monitor)
-            )
-            await asyncio.sleep(0.8)
-            if len(write_payloads) > 1:
-                await write_sequence_to_char(
-                    client,
-                    services,
-                    args.char,
-                    write_payloads,
-                    args.sequence_delay,
-                    response=args.response,
-                    force=args.force,
-                    force_ota=args.force_ota,
-                    step=args.step,
-                )
-            else:
-                _, payload = write_payloads[0]
-                await write_hex_to_char(
-                    client,
-                    services,
-                    args.char,
-                    payload,
-                    response=args.response,
-                    force=args.force,
-                    force_ota=args.force_ota,
-                )
-            await monitor_task
-        else:
-            if has_write:
-                if len(write_payloads) > 1:
-                    await write_sequence_to_char(
-                        client,
-                        services,
-                        args.char,
-                        write_payloads,
-                        args.sequence_delay,
-                        response=args.response,
-                        force=args.force,
-                        force_ota=args.force_ota,
-                        step=args.step,
-                    )
-                else:
-                    _, payload = write_payloads[0]
-                    await write_hex_to_char(
-                        client,
-                        services,
-                        args.char,
-                        payload,
-                        response=args.response,
-                        force=args.force,
-                        force_ota=args.force_ota,
-                    )
+        collector = None
+        if has_write:
+            targets = resolve_write_targets(services, args)
+            if args.reply_wait > 0:
+                notify_chars = get_notify_candidates(services, args.notify_char)
+                if notify_chars:
+                    collector = NotifyCollector()
+                    print("\nSubscribing to notify characteristics to capture replies:")
+                    if not await collector.start(client, notify_chars):
+                        collector = None
 
-            if args.monitor > 0:
-                await monitor_notifications(client, services, args.notify_char, args.monitor)
+            try:
+                for target in targets:
+                    await run_payloads(client, target, write_payloads, args, collector)
+
+                if args.monitor > 0 and collector:
+                    print(f"\nIdle monitoring for {args.monitor:g}s...")
+                    await asyncio.sleep(args.monitor)
+                    for event in collector.drain():
+                        print(
+                            f"  <== handle={event['handle']} {bytes_to_hex(event['data'])}"
+                        )
+            finally:
+                if collector:
+                    await collector.stop(client)
+
+        elif args.monitor > 0:
+            await monitor_notifications(client, services, args.notify_char, args.monitor)
 
         if args.interactive:
             await interactive_loop(
