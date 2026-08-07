@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="zh-Hant">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="K-WAVE 2026 粉絲自製應援網站的手燈電量查詢頁，使用 Web Bluetooth 直接讀取 APINK 手燈電量。" />
+  <title>手燈電量 | K-WAVE 2026 粉絲自製應援網站</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Outfit:wght@500;600;700&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css?v=30" />
+</head>
+
+<body class="stats-page">
+  <div class="page-glow page-glow--pink" aria-hidden="true"></div>
+  <div class="page-glow page-glow--blue" aria-hidden="true"></div>
+
+  <header class="site-header">
+    <a class="brand" href="/kwave2026/" aria-label="粉絲自製應援網站首頁">
+      <span class="brand__spark" aria-hidden="true">✦</span>
+      <span class="brand__text">K-WAVE <span class="brand__suffix">粉絲自製</span></span>
+      <strong>應援網站</strong>
+    </a>
+    <div class="header-actions">
+      <nav class="site-nav" aria-label="主要導覽">
+        <a href="/kwave2026/">主視覺</a>
+        <a href="/kwave2026/merch.html">應援物</a>
+        <a href="/kwave2026/support-pool.html">大眾池</a>
+        <a href="/kwave2026/stats.html">統計排行</a>
+        <a href="/kwave2026/lightstick.html" class="is-active" aria-current="page">手燈電量</a>
+        <a href="/kwave2026/#lucky-draw">抽獎任務</a>
+        <a href="/kwave2026/winners.html">中獎結果</a>
+      </nav>
+      <p class="event-tag">KAOHSIUNG <span>2026</span></p>
+    </div>
+  </header>
+
+  <main class="stats-main">
+    <section class="stats-hero" aria-labelledby="lightstick-page-title">
+      <div class="stats-copy">
+        <p class="eyebrow"><span></span> LIGHT STICK BATTERY</p>
+        <h1 id="lightstick-page-title">
+          手燈電量
+          <span>直接讀取藍牙電量</span>
+        </h1>
+      </div>
+
+      <section class="battery-readout" aria-labelledby="battery-readout-title">
+        <p id="battery-readout-title">BATTERY LEVEL</p>
+        <strong id="battery-level">--</strong>
+        <div class="battery-bar" id="battery-bar" role="img" aria-label="電量長條圖"></div>
+        <span id="battery-device">尚未連線</span>
+        <span id="battery-updated">尚未讀取</span>
+      </section>
+    </section>
+
+    <section class="battery-panel" aria-labelledby="battery-panel-title">
+      <h2 id="battery-panel-title">連線手燈</h2>
+      <p class="battery-panel__lead">
+        把手燈開機並長按按鈕進入藍牙模式，再按下方按鈕選擇「APINK LIGHT STICK」。
+        電量是直接從手燈的藍牙電池服務讀出來的，不會經過任何伺服器。
+      </p>
+
+      <div class="battery-actions">
+        <button class="primary-link" type="button" id="battery-connect">連線手燈</button>
+        <button class="primary-link" type="button" id="battery-refresh" hidden>重新讀取</button>
+        <button class="ghost-link" type="button" id="battery-disconnect" hidden>中斷連線</button>
+      </div>
+
+      <label class="battery-option">
+        <input type="checkbox" id="battery-all-devices" />
+        <span>找不到手燈時，顯示所有藍牙裝置</span>
+      </label>
+
+      <p class="stats-status" id="battery-status">尚未連線。</p>
+
+      <div class="battery-note" id="battery-unsupported" hidden>
+        <strong>這個瀏覽器不支援 Web Bluetooth。</strong>
+        <p>
+          目前只有電腦版的 Chrome、Edge 以及 Android 版 Chrome 支援。
+          Safari 與所有 iPhone、iPad 上的瀏覽器都無法使用，因為 iOS 系統本身沒有開放這個功能。
+        </p>
+      </div>
+
+      <div class="battery-note">
+        <strong>讀不到電量時可以檢查</strong>
+        <p>
+          手燈是否已進入藍牙模式、電腦藍牙是否開啟、是否已在系統設定裡允許瀏覽器使用藍牙。
+          在 macOS 上需要到「系統設定 → 隱私權與安全性 → 藍牙」把瀏覽器打勾。
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>FOREVER WITH APINK</p>
+    <div class="pagination" aria-label="手燈電量裝飾頁次">
+      <span class="pagination__dot is-active" aria-hidden="true"></span>
+      <span class="pagination__dot" aria-hidden="true"></span>
+    </div>
+    <p>KAOHSIUNG · TAIWAN</p>
+    <p class="footer-disclaimer">📌 本活動為粉絲自發性應援，所有應援周邊皆為自製且免費抽籤贈送，不進行任何商業販售，並與官方主辦單位無關。</p>
+  </footer>
+
+  <script src="lightstick.js?v=1"></script>
+</body>
+
+</html>
