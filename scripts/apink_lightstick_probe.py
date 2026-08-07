@@ -13,6 +13,7 @@ import argparse
 import asyncio
 import re
 import sys
+import time
 from typing import Iterable, Optional
 
 try:
@@ -24,6 +25,9 @@ except ImportError:  # pragma: no cover - helpful runtime message
 
 
 DEFAULT_NAME = "APINK"
+CSR_OTA_SERVICE_UUID = "00001016-d102-11e1-9b23-00025b00a5a5"
+LIKELY_LIGHT_WRITE_UUID = "000092a4-0000-1000-8000-00805f9b34fb"
+LIKELY_LIGHT_NOTIFY_UUID = "000092a5-0000-1000-8000-00805f9b34fb"
 
 
 def parse_args() -> argparse.Namespace:
@@ -73,6 +77,18 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Prompt for characteristic and hex bytes after connecting.",
     )
+    parser.add_argument(
+        "--monitor",
+        type=float,
+        default=0.0,
+        help="Subscribe to notify characteristics for N seconds. Try pressing the light stick button.",
+    )
+    parser.add_argument(
+        "--notify-char",
+        action="append",
+        default=[],
+        help="Only monitor the specified notify characteristic UUID or handle. Can be repeated.",
+    )
     return parser.parse_args()
 
 
@@ -97,6 +113,10 @@ def is_writable(properties: Iterable[str]) -> bool:
 
 def is_readable(properties: Iterable[str]) -> bool:
     return "read" in set(properties)
+
+
+def is_notifiable(properties: Iterable[str]) -> bool:
+    return "notify" in set(properties) or "indicate" in set(properties)
 
 
 def device_name(device) -> str:
@@ -149,13 +169,22 @@ def print_services(services):
     writable_chars = []
 
     for service in services:
-        print(f"[SERVICE] {service.uuid} | {service.description}")
+        service_note = ""
+        if service.uuid.lower() == CSR_OTA_SERVICE_UUID:
+            service_note = "  <-- CSR OTA / firmware update service; avoid writing"
+        print(f"[SERVICE] {service.uuid} | {service.description}{service_note}")
         for char in service.characteristics:
             props = list(char.properties)
             writable = is_writable(props)
             if writable:
                 writable_chars.append(char)
             tag = "  WRITE CANDIDATE" if writable else ""
+            if service.uuid.lower() == CSR_OTA_SERVICE_UUID:
+                tag += "  AVOID"
+            elif char.uuid.lower() == LIKELY_LIGHT_WRITE_UUID:
+                tag += "  LIKELY LIGHT CONTROL"
+            elif char.uuid.lower() == LIKELY_LIGHT_NOTIFY_UUID:
+                tag += "  LIKELY LIGHT REPLY"
             print(
                 f"  [CHAR] handle={char.handle} uuid={char.uuid} "
                 f"props={','.join(props) or '-'}{tag}"
@@ -174,6 +203,25 @@ def print_services(services):
         print("\nNo writable characteristics were advertised.")
 
     return writable_chars
+
+
+def get_notify_candidates(services, specs):
+    if specs:
+        chars = []
+        for spec in specs:
+            char = find_characteristic(services, spec)
+            if not char:
+                print(f"Notify characteristic not found: {spec}")
+                continue
+            chars.append(char)
+        return chars
+
+    chars = []
+    for service in services:
+        for char in service.characteristics:
+            if is_notifiable(char.properties):
+                chars.append(char)
+    return chars
 
 
 def find_characteristic(services, spec: str):
@@ -227,6 +275,44 @@ async def write_hex_to_char(
     )
     await client.write_gatt_char(char, data, response=response)
     print("Write completed.")
+
+
+async def monitor_notifications(client: BleakClient, services, specs, seconds: float):
+    notify_chars = get_notify_candidates(services, specs)
+    if not notify_chars:
+        print("\nNo notify characteristics to monitor.")
+        return
+
+    started = []
+
+    def make_handler(char):
+        def handler(sender, data):
+            timestamp = time.strftime("%H:%M:%S")
+            print(
+                f"[{timestamp}] notify handle={char.handle} uuid={char.uuid} "
+                f"sender={sender} => {bytes_to_hex(bytes(data))}"
+            )
+
+        return handler
+
+    print(f"\nMonitoring notifications for {seconds:g}s...")
+    print("Press the light stick button or change modes while this is running.")
+    for char in notify_chars:
+        try:
+            await client.start_notify(char, make_handler(char))
+            started.append(char)
+            print(f"  started handle={char.handle} uuid={char.uuid}")
+        except Exception as error:
+            print(f"  failed handle={char.handle} uuid={char.uuid}: {error}")
+
+    if started:
+        await asyncio.sleep(seconds)
+
+    for char in started:
+        try:
+            await client.stop_notify(char)
+        except Exception as error:
+            print(f"  stop failed handle={char.handle} uuid={char.uuid}: {error}")
 
 
 async def interactive_loop(client: BleakClient, services, default_response: bool, force: bool):
@@ -288,6 +374,9 @@ async def run() -> int:
                 response=args.response,
                 force=args.force,
             )
+
+        if args.monitor > 0:
+            await monitor_notifications(client, services, args.notify_char, args.monitor)
 
         if args.interactive:
             await interactive_loop(client, services, args.response, args.force)
